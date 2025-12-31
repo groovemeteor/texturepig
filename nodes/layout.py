@@ -7,6 +7,71 @@ import cv2
 
 from texture_pig.nodes.core import GenerationCacheMixin, get_scalar_param_int
 
+
+def _validate_color_stops(stops):
+    """
+    Validate and normalize color stops.
+    Returns sorted tuple of (position, (R, G, B, A)) tuples.
+    """
+    if stops is None:
+        return None
+    stops = list(stops)
+    if len(stops) < 2:
+        raise ValueError("At least 2 color stops required")
+    # Sort by position
+    stops.sort(key=lambda s: s[0])
+    validated = []
+    for pos, color in stops:
+        pos = max(0.0, min(1.0, float(pos)))
+        # Ensure RGBA (add alpha if only RGB)
+        color = tuple(float(c) for c in color)
+        if len(color) == 3:
+            color = color + (1.0,)
+        validated.append((pos, color))
+    return tuple(validated)
+
+
+def _sample_gradient_color(t: float, color_stops) -> tuple:
+    """
+    Sample a single RGBA color from gradient at position t in [0, 1].
+    Returns (R, G, B, A) tuple with values in [0, 1].
+    """
+    if color_stops is None or len(color_stops) < 2:
+        return (1.0, 1.0, 1.0, 1.0)
+
+    t = max(0.0, min(1.0, t))
+
+    # Find the two stops that bracket t
+    for i in range(len(color_stops) - 1):
+        pos0, color0 = color_stops[i]
+        pos1, color1 = color_stops[i + 1]
+
+        if t <= pos1 or i == len(color_stops) - 2:
+            # Interpolate within this segment
+            segment_len = max(pos1 - pos0, 1e-8)
+            local_t = max(0.0, min(1.0, (t - pos0) / segment_len))
+
+            r = (1.0 - local_t) * color0[0] + local_t * color1[0]
+            g = (1.0 - local_t) * color0[1] + local_t * color1[1]
+            b = (1.0 - local_t) * color0[2] + local_t * color1[2]
+            a = (1.0 - local_t) * color0[3] + local_t * color1[3]
+            return (r, g, b, a)
+
+    # Fallback to last color
+    return color_stops[-1][1]
+
+
+def _tint_tile(tile: np.ndarray, color: tuple) -> np.ndarray:
+    """
+    Apply a color tint to a tile by multiplying RGB and alpha.
+    """
+    result = tile.copy()
+    result[..., 0] *= color[0]  # R
+    result[..., 1] *= color[1]  # G
+    result[..., 2] *= color[2]  # B
+    result[..., 3] *= color[3]  # A
+    return np.clip(result, 0.0, 1.0).astype(np.float32)
+
 def _ensure_rgba(img, size):
     img = np.asarray(img, dtype=np.float32)
     if img.ndim != 3 or img.shape[-1] != 4:
@@ -118,6 +183,7 @@ class Grid(GenerationCacheMixin):
     - Region control: position/size (in 0..1 of output).
     - Padding per cell to create spacing.
     - Uniform and non-uniform scale (can exceed 1.0 for overlaps).
+    - Optional gradient coloring: tiles are tinted based on their position.
     Inputs:
       - src
     Params:
@@ -127,6 +193,9 @@ class Grid(GenerationCacheMixin):
       - scale (>=0), scale_x (>=0|None), scale_y (>=0|None)
       - eval_cell_square: bool (when deriving base dims; matters if render_at_tile_resolution=False)
       - render_at_tile_resolution: bool (default True)
+      - use_gradient: bool (if True, apply gradient coloring to tiles)
+      - gradient_mode: 'index' | 'column' | 'row' (how gradient position is calculated)
+      - color_stops: tuple of (position, (R, G, B, A)) for gradient coloring
       - name
     """
     def __init__(self, nx: int = 2, ny: int = 2,
@@ -138,6 +207,9 @@ class Grid(GenerationCacheMixin):
                  scale_y: float | None = None,
                  eval_cell_square: bool = True,
                  render_at_tile_resolution: bool = True,
+                 use_gradient: bool = False,
+                 gradient_mode: str = 'index',
+                 color_stops: tuple = None,
                  name: str = 'Grid'):
         self.nx = int(nx); self.ny = int(ny)
         self.region_x = float(region_x); self.region_y = float(region_y)
@@ -148,6 +220,13 @@ class Grid(GenerationCacheMixin):
         self.scale_y = None if scale_y is None else float(scale_y)
         self.eval_cell_square = bool(eval_cell_square)
         self.render_at_tile_resolution = bool(render_at_tile_resolution)
+        self.use_gradient = bool(use_gradient)
+        self.gradient_mode = str(gradient_mode).lower()  # 'index', 'column', 'row'
+        # Default gradient: white to black with full alpha
+        if color_stops is None:
+            self.color_stops = ((0.0, (1.0, 1.0, 1.0, 1.0)), (1.0, (0.0, 0.0, 0.0, 1.0)))
+        else:
+            self.color_stops = _validate_color_stops(color_stops)
         self.name = name
         self.inputs = {'src': None}
         self._dirty = True
@@ -159,6 +238,10 @@ class Grid(GenerationCacheMixin):
         self.invalidate()
 
     def set_params(self, **kwargs):
+        if 'color_stops' in kwargs:
+            kwargs['color_stops'] = _validate_color_stops(kwargs['color_stops'])
+        if 'gradient_mode' in kwargs:
+            kwargs['gradient_mode'] = str(kwargs['gradient_mode']).lower()
         for k, v in kwargs.items():
             setattr(self, k, v)
         self.invalidate()
@@ -237,6 +320,8 @@ class Grid(GenerationCacheMixin):
         # Place tiles, centered inside each (padded) cell, within the region
         clip_y0, clip_y1 = 0, size
         clip_x0, clip_x1 = 0, size
+        total_tiles = nx * ny
+        tile_index = 0
         for r in range(ny):
             for c in range(nx):
                 # cell origin (float), then center the tile
@@ -247,7 +332,23 @@ class Grid(GenerationCacheMixin):
                 # center the tile in the inner rect
                 y0 = int(round(y_inner0_f + (inner_h_f - tile_h) * 0.5))
                 x0 = int(round(x_inner0_f + (inner_w_f - tile_w) * 0.5))
-                _composite_over(out, src_tile, y0, x0, clip_y0, clip_y1, clip_x0, clip_x1)
+
+                # Apply gradient coloring if enabled
+                if self.use_gradient and self.color_stops:
+                    # Calculate gradient position based on mode
+                    if self.gradient_mode == 'column':
+                        t = c / max(1, nx - 1) if nx > 1 else 0.0
+                    elif self.gradient_mode == 'row':
+                        t = r / max(1, ny - 1) if ny > 1 else 0.0
+                    else:  # 'index' (default)
+                        t = tile_index / max(1, total_tiles - 1) if total_tiles > 1 else 0.0
+                    color = _sample_gradient_color(t, self.color_stops)
+                    tinted_tile = _tint_tile(src_tile, color)
+                    _composite_over(out, tinted_tile, y0, x0, clip_y0, clip_y1, clip_x0, clip_x1)
+                else:
+                    _composite_over(out, src_tile, y0, x0, clip_y0, clip_y1, clip_x0, clip_x1)
+
+                tile_index += 1
 
         result = out.astype(np.float32)
         self._store_cache(size, result)
@@ -274,6 +375,8 @@ class RadialGrid(GenerationCacheMixin):
       - rotate_mode         : 'none' | 'radial' | 'tangent' (per-instance rotation)
       - item_rotation_deg   : per-instance extra rotation added after rotate_mode
       - render_at_tile_resolution : bool (default True, high quality)
+      - use_gradient        : bool (if True, apply gradient coloring to tiles)
+      - color_stops         : tuple of (position, (R, G, B, A)) for gradient coloring
       - name                : display name
     """
     def __init__(self,
@@ -290,6 +393,8 @@ class RadialGrid(GenerationCacheMixin):
                  rotate_mode: str = 'none',
                  item_rotation_deg: float = 0.0,
                  render_at_tile_resolution: bool = True,
+                 use_gradient: bool = False,
+                 color_stops: tuple = None,
                  name: str = 'RadialGrid'):
         self.count = int(count)
         self.cx = float(cx); self.cy = float(cy)
@@ -308,6 +413,13 @@ class RadialGrid(GenerationCacheMixin):
         self.item_rotation_deg = float(item_rotation_deg)
         self.render_at_tile_resolution = bool(render_at_tile_resolution)
 
+        # Gradient coloring
+        self.use_gradient = bool(use_gradient)
+        if color_stops is None:
+            self.color_stops = ((0.0, (1.0, 1.0, 1.0, 1.0)), (1.0, (0.0, 0.0, 0.0, 1.0)))
+        else:
+            self.color_stops = _validate_color_stops(color_stops)
+
         self.name = name
         self.inputs = {'src': None}
         self._dirty = True
@@ -321,6 +433,8 @@ class RadialGrid(GenerationCacheMixin):
     def set_params(self, **kwargs):
         if 'rotate_mode' in kwargs:
             self.rotate_mode = str(kwargs.pop('rotate_mode')).lower()
+        if 'color_stops' in kwargs:
+            kwargs['color_stops'] = _validate_color_stops(kwargs['color_stops'])
 
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -386,14 +500,20 @@ class RadialGrid(GenerationCacheMixin):
             ang_rad = np.deg2rad(ang_deg)
             x_center = cx_px + int(round(radius_px * np.cos(ang_rad)))
             y_center = cy_px + int(round(radius_px * np.sin(ang_rad)))
-            #x0 = int(round(x_center - tile_w * 0.5))
-            #y0 = int(round(y_center - tile_h * 0.5))
+
+            # Apply gradient coloring if enabled
+            if self.use_gradient and self.color_stops:
+                t = i / max(1, n - 1) if n > 1 else 0.0
+                color = _sample_gradient_color(t, self.color_stops)
+                current_tile_base = _tint_tile(src_tile_base, color)
+            else:
+                current_tile_base = src_tile_base
 
             # Rotation — match Circular exactly:
             # radial  → ang_deg + 90 + extra
             # tangent → ang_deg + extra
             # none    → extra
-            tile = src_tile_base
+            tile = current_tile_base
             if self.rotate_mode != 'none' or abs(self.item_rotation_deg) > 1e-6:
                 extra = float(self.item_rotation_deg)
                 if self.rotate_mode == 'radial':
@@ -410,7 +530,7 @@ class RadialGrid(GenerationCacheMixin):
                 safety = 8
                 rot_side = rot_bbox + safety
 
-                padded = _pad_to_square(src_tile_base, rot_side)
+                padded = _pad_to_square(current_tile_base, rot_side)
                 tile = _rotate_bilinear(padded, inst_angle)
 
             x0 = int(round(x_center - tile.shape[1] * 0.5))

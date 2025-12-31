@@ -14,7 +14,8 @@ Texture Pig is a powerful, node-based procedural texture generation tool built w
     - **Generators**: Perlin Noise, Worley Noise, and various Gradient types.
     - **Shapes**: Procedural Circles, Rectangles, Triangles, Lines, Stripes, and HexGrid (honeycomb pattern).
     - **Filters**: Gaussian Blur, Levels, Inversion, and Channel Combining.
-    - **Layouts**: Grid and Radial repeating patterns.
+    - **Layouts**: Grid and Radial repeating patterns with optional gradient coloring.
+    - **Scalar**: Float/Int values, arithmetic operations (Add, Sub, Mul, Div, Clamp).
 - **🔭 Dual Previews**: Real-time thumbnail previews on every node, plus a full-resolution "Output" dock with **progressive rendering**.
 - **📸 High-Res Export**: Render and save your final results directly to PNG.
 - **⚡ Optimized UX**: Lazy-follow sliders, debounced preview updates, and background rendering for smooth interaction.
@@ -155,8 +156,25 @@ The Python module approach (`icons_rc.py`) is recommended because PyInstaller au
 
 ### Layout
 - `Grid` — replicate a source into an `nx × ny` grid inside a region with padding; supports `scale > 1.0`, bilinear resampling, and high-quality tile evaluation.
+  - **Gradient coloring**: Enable `use_gradient` to tint each tile based on its position. Configure `color_stops` as a list of `(position, (R, G, B, A))` tuples.
+  - **Gradient mode** (`gradient_mode`): Controls how tiles sample the gradient:
+    - `index` — tiles are colored sequentially from first to last (default)
+    - `column` — tiles in the same column share the same color (left-to-right gradient)
+    - `row` — tiles in the same row share the same color (top-to-bottom gradient)
 - `RadialGrid` — arrange instances around a circle/arc; count, center, radius, sweep, per-tile scale and rotation (`none|radial|tangent`).
+  - **Gradient coloring**: Enable `use_gradient` to tint each tile based on its position around the arc. Configure `color_stops` as a list of `(position, (R, G, B, A))` tuples.
 - `Atlas` — pack multiple images into a single texture atlas. Parameters: `cells` (4, 9, 16, 25, 36, 49, or 64 — perfect squares for 2x2 up to 8x8 grids). Images are arranged left-to-right, top-to-bottom. Useful for sprite sheets and texture atlases.
+
+### Scalar
+Scalar nodes output single numeric values and can be connected to numeric input ports on other nodes.
+
+- `Float` — outputs a single floating-point value. Parameters: `value` (default 0.5), `min_val`, `max_val`.
+- `Int` — outputs a single integer value. Parameters: `value` (default 0), `min_val`, `max_val`.
+- `ScalarAdd` — adds two scalar inputs (`a + b`).
+- `ScalarSub` — subtracts two scalar inputs (`a - b`).
+- `ScalarMul` — multiplies two scalar inputs (`a * b`).
+- `ScalarDiv` — divides two scalar inputs (`a / b`), with safe division by zero handling.
+- `ScalarClamp` — clamps a value between min and max bounds. Inputs: `value`, `min_val`, `max_val`.
 
 ---
 
@@ -267,6 +285,37 @@ class TextureNode(Protocol):
     def invalidate(self) -> None: ...
     def evaluate_port(self, port_name: str, size: int) -> np.ndarray: ...  # For multi-output nodes
 ```
+
+### Scalar Node Protocol
+
+Scalar nodes (nodes that output numeric values) implement the `ScalarNodeProtocol`:
+
+```python
+from texture_pig.nodes.scalar import ScalarNodeProtocol, ScalarNode
+
+@runtime_checkable
+class ScalarNodeProtocol(Protocol):
+    def get_scalar_value(self) -> float: ...
+    def get_int_value(self) -> int: ...
+```
+
+The `ScalarNode` base class provides a default implementation:
+
+```python
+from texture_pig.nodes.scalar import ScalarNode
+
+class MyScalarNode(ScalarNode):
+    def __init__(self, value: float = 0.5, **kwargs):
+        super().__init__(**kwargs)
+        self.value = value
+
+    def get_scalar_value(self) -> float:
+        return self.value
+
+    # get_int_value() is inherited: returns int(round(get_scalar_value()))
+```
+
+Scalar nodes can be connected to numeric input ports. When evaluated as an image, they produce a solid gray image where the brightness equals the clamped scalar value.
 
 ### Adding a new node
 

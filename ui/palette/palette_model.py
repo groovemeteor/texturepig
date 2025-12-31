@@ -36,6 +36,7 @@ def build_default_entries() -> List[PaletteEntry]:
     from texture_pig.nodes.blends import Blend, Lerp
     from texture_pig.nodes.image_source import ImageNode
     from texture_pig.nodes.layout import Grid, RadialGrid, Atlas
+    from texture_pig.nodes.scalar import Float, Int, ScalarAdd, ScalarSub, ScalarMul, ScalarDiv, ScalarClamp
 
     entries: List[PaletteEntry] = []
 
@@ -91,6 +92,17 @@ def build_default_entries() -> List[PaletteEntry]:
         PaletteEntry('Grid',             'Layout',     lambda: Grid(nx=2, ny=2, scale=1.0, name='Grid'), inputs=['src']),
         PaletteEntry('RadialGrid',       'Layout',     lambda: RadialGrid(count=8, cx=0.5, cy=0.5, radius=0.35, tile_edge_frac=0.15, rotate_mode='none', name='RadialGrid'), inputs=['src']),
         PaletteEntry('Atlas',            'Layout',     lambda: Atlas(cells=4, name='Atlas'), inputs=['in0', 'in1', 'in2', 'in3']),
+    ]
+
+    # Scalar
+    entries += [
+        PaletteEntry('Float',            'Scalar',     lambda: Float(value=0.5, name='Float')),
+        PaletteEntry('Int',              'Scalar',     lambda: Int(value=0, name='Int')),
+        PaletteEntry('ScalarAdd',        'Scalar',     lambda: ScalarAdd(name='Add'), inputs=['a', 'b']),
+        PaletteEntry('ScalarSub',        'Scalar',     lambda: ScalarSub(name='Sub'), inputs=['a', 'b']),
+        PaletteEntry('ScalarMul',        'Scalar',     lambda: ScalarMul(name='Mul'), inputs=['a', 'b']),
+        PaletteEntry('ScalarDiv',        'Scalar',     lambda: ScalarDiv(name='Div'), inputs=['a', 'b']),
+        PaletteEntry('ScalarClamp',      'Scalar',     lambda: ScalarClamp(name='Clamp'), inputs=['value', 'min_val', 'max_val']),
     ]
 
     return entries

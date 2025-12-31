@@ -35,6 +35,7 @@ QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {
   border-radius: 3px;
   padding: 2px 4px;
 }
+
 QComboBox QAbstractItemView {
   background: #252525;
   selection-background-color: #3aa86b;

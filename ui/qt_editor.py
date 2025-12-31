@@ -24,7 +24,8 @@ from PySide6.QtWidgets import (
 )
 
 # ---- Backend nodes ----
-from texture_pig.nodes.core import Graph, Constant, Float, ScalarAdd, ScalarSub, ScalarMul, ScalarClamp
+from texture_pig.nodes.core import Graph, Constant
+from texture_pig.nodes.scalar import Float, Int, ScalarAdd, ScalarSub, ScalarMul, ScalarDiv, ScalarClamp
 from texture_pig.nodes.generators import (
     GradientRadial, GradientLinear, GradientReflected, GradientAngle,
     PerlinNoise, WorleyNoise
@@ -72,8 +73,8 @@ RIGHT_PAD = 12
 SQUARE_SIZE_CHOICES = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
 
 NODE_REGISTRY = {
-    'Output': Output, 'Constant': Constant, 'Float': Float,
-    'ScalarAdd': ScalarAdd, 'ScalarSub': ScalarSub, 'ScalarMul': ScalarMul, 'ScalarClamp': ScalarClamp,
+    'Output': Output, 'Constant': Constant, 'Float': Float, 'Int': Int,
+    'ScalarAdd': ScalarAdd, 'ScalarSub': ScalarSub, 'ScalarMul': ScalarMul, 'ScalarDiv': ScalarDiv, 'ScalarClamp': ScalarClamp,
     'GradientLinear': GradientLinear,
     'GradientRadial': GradientRadial, 'GradientReflected': GradientReflected,
     'GradientAngle': GradientAngle, 'PerlinNoise': PerlinNoise, 'WorleyNoise': WorleyNoise,
@@ -222,15 +223,28 @@ class GraphEditor(QMainWindow):
 
         layout.addLayout(grid)
 
+        # Scalar Math Icon Buttons (small square buttons in a row)
+        scalar_math_layout = QHBoxLayout()
+        scalar_math_layout.setSpacing(4)
+        scalar_math_icons = [
+            (':/ui/icons/scalar_add_32.png', '+', lambda: ScalarAdd(name='Add')),
+            (':/ui/icons/scalar_sub_32.png', '-', lambda: ScalarSub(name='Sub')),
+            (':/ui/icons/scalar_mul_32.png', '*', lambda: ScalarMul(name='Mul')),
+            (':/ui/icons/scalar_div_32.png', '/', lambda: ScalarDiv(name='Div')),
+        ]
+        for icon_path, tooltip, node_gen in scalar_math_icons:
+            btn = self._make_icon_button(icon_path, tooltip, lambda checked=False, g=node_gen: self.add_node_ui(g()), size=32)
+            scalar_math_layout.addWidget(btn)
+        scalar_math_layout.addStretch(1)
+        layout.addLayout(scalar_math_layout)
+
         # Functional Buttons
         btns_layout = QVBoxLayout()
         btns_layout.setSpacing(4)
 
         node_types = [
             ('Float', lambda: Float(value=0.5, name='Float')),
-            ('Add', lambda: ScalarAdd(name='Add')),
-            ('Sub', lambda: ScalarSub(name='Sub')),
-            ('Mul', lambda: ScalarMul(name='Mul')),
+            ('Int', lambda: Int(value=0, name='Int')),
             ('Clamp', lambda: ScalarClamp(name='Clamp')),
             ('Constant', lambda: Constant(color=(0,0,0,1), name='Constant')),
             ('Image', lambda: ImageNode(name='Image')),
@@ -380,7 +394,7 @@ class GraphEditor(QMainWindow):
             # Check if this is a known multi-output node type
             if isinstance(bnode, Split):
                 outputs = ['r', 'g', 'b', 'a']
-            elif isinstance(bnode, (Float, ScalarAdd, ScalarSub, ScalarMul, ScalarClamp)):
+            elif isinstance(bnode, (Float, Int, ScalarAdd, ScalarSub, ScalarMul, ScalarDiv, ScalarClamp)):
                 outputs = [('out', 'scalar')]  # Scalar nodes output scalar
             elif isinstance(bnode, Constant):
                 outputs = ['out', ('scalar', 'scalar')]  # Constant has both image and scalar outputs
@@ -395,7 +409,7 @@ class GraphEditor(QMainWindow):
                 nitem.add_output(out_spec)
 
         # Add scalar inputs for math nodes
-        if isinstance(bnode, (ScalarAdd, ScalarSub, ScalarMul)):
+        if isinstance(bnode, (ScalarAdd, ScalarSub, ScalarMul, ScalarDiv)):
             nitem.add_input('a', port_type='scalar')
             nitem.add_input('b', port_type='scalar')
         elif isinstance(bnode, ScalarClamp):
@@ -404,7 +418,7 @@ class GraphEditor(QMainWindow):
             nitem.add_input('max_val', port_type='scalar')
 
         # Disable preview for scalar-only nodes
-        if isinstance(bnode, (Float, ScalarAdd, ScalarSub, ScalarMul, ScalarClamp)):
+        if isinstance(bnode, (Float, Int, ScalarAdd, ScalarSub, ScalarMul, ScalarDiv, ScalarClamp)):
             nitem.preview_enabled = False
             nitem.preview_item.setVisible(False)
             nitem.layout_ports_and_resize()
@@ -730,7 +744,7 @@ class GraphEditor(QMainWindow):
             if outputs is None:
                 if isinstance(bnode, Split):
                     outputs = ['r', 'g', 'b', 'a']
-                elif isinstance(bnode, (Float, ScalarAdd, ScalarSub, ScalarMul, ScalarClamp)):
+                elif isinstance(bnode, (Float, Int, ScalarAdd, ScalarSub, ScalarMul, ScalarDiv, ScalarClamp)):
                     outputs = [('out', 'scalar')]
                 elif isinstance(bnode, Constant):
                     outputs = ['out', ('scalar', 'scalar')]
@@ -755,7 +769,7 @@ class GraphEditor(QMainWindow):
 
             # During loading, set visibility directly without triggering expensive operations
             # Scalar nodes default to no preview
-            default_preview = not isinstance(bnode, (Float, ScalarAdd, ScalarSub, ScalarMul, ScalarClamp))
+            default_preview = not isinstance(bnode, (Float, Int, ScalarAdd, ScalarSub, ScalarMul, ScalarDiv, ScalarClamp))
             nitem.preview_enabled = node_entry.get('preview_enabled', default_preview)
             nitem.preview_item.setVisible(nitem.preview_enabled)
             nitem.preview_frame.setVisible(nitem.preview_enabled)
