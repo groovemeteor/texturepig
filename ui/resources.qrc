@@ -1,0 +1,26 @@
+<!-- ui/resources.qrc -->
+<RCC version="1.0">
+  <qresource prefix="/ui">
+    <!-- QSS stylesheet -->
+    <file>qss/style.qss</file>
+
+    <!-- Shapes -->
+    <file>icons/circle_128.png</file>
+    <file>icons/rectangle_128.png</file>
+    <file>icons/triangle_128.png</file>
+    <file>icons/line_128.png</file>
+    <file>icons/stripes_128.png</file>
+
+    <!-- Layout -->
+    <file>icons/hex_grid_128.png</file>
+
+    <!-- Gradients -->
+    <file>icons/gradient_linear_128.png</file>
+    <file>icons/gradient_radial_128.png</file>
+    <file>icons/gradient_reflected_128.png</file>
+    <file>icons/gradient_angle_128.png</file>
+    <file>icons/perlin_128.png</file>
+    <file>icons/worley_128.png</file>
+
+  </qresource>
+</RCC>

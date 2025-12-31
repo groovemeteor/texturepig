@@ -1,0 +1,2016 @@
+{
+  "version": 1,
+  "graph_size": 512,
+  "preview_size": 256,
+  "ui_scale": 1.0,
+  "nodes": [
+    {
+      "id": 0,
+      "class": "Output",
+      "name": "Output",
+      "params": {},
+      "inputs": [
+        "src"
+      ],
+      "pos": [
+        3424.0,
+        800.0
+      ],
+      "width": 322,
+      "preview_enabled": true
+    },
+    {
+      "id": 1,
+      "class": "Triangle",
+      "name": "Triangle",
+      "params": {
+        "cx": 0.5,
+        "cy": 0.5,
+        "base": 0.5,
+        "height": 0.5,
+        "scale": 1.0,
+        "rotation_deg": 0.0,
+        "edge_softness": 0.0,
+        "equilateral": true,
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        -3584.0,
+        -192.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 2,
+      "class": "RadialGrid",
+      "name": "RadialGrid",
+      "params": {
+        "count": 24,
+        "cx": 0.5,
+        "cy": 0.5,
+        "radius": 0.35,
+        "start_angle_deg": 0.0,
+        "sweep_deg": 360.0,
+        "angle_offset_deg": 0.0,
+        "tile_edge_frac": 0.15,
+        "scale": 1.0,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "rotate_mode": "radial",
+        "item_rotation_deg": 0.0,
+        "render_at_tile_resolution": true
+      },
+      "inputs": [
+        "src"
+      ],
+      "pos": [
+        -3168.0,
+        -192.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 3,
+      "class": "RadialGrid",
+      "name": "RadialGrid_copy",
+      "params": {
+        "count": 16,
+        "cx": 0.5,
+        "cy": 0.5,
+        "radius": 0.31,
+        "start_angle_deg": 0.0,
+        "sweep_deg": 360.0,
+        "angle_offset_deg": 22.5,
+        "tile_edge_frac": 0.15,
+        "scale": 0.6,
+        "scale_x": 0.56,
+        "scale_y": 0.56,
+        "rotate_mode": "radial",
+        "item_rotation_deg": 0.0,
+        "render_at_tile_resolution": true
+      },
+      "inputs": [
+        "src"
+      ],
+      "pos": [
+        -2432.0,
+        160.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 4,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "add",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        -224.0,
+        -64.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 5,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "add",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        480.0,
+        0.0
+      ],
+      "width": 322,
+      "preview_enabled": true
+    },
+    {
+      "id": 6,
+      "class": "GradientAngle",
+      "name": "Angle",
+      "params": {
+        "seed": null,
+        "opacity": 1.0,
+        "cx": 0.5,
+        "cy": 0.5,
+        "angle_offset_deg": 100.0,
+        "invert": false,
+        "output_mode": "color",
+        "start_color": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "end_color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "color_stops": [
+          [
+            0.0,
+            [
+              0.0470588244497776,
+              0.13333334028720856,
+              0.21960784494876862,
+              1.0
+            ]
+          ],
+          [
+            1.0,
+            [
+              0.21568627655506134,
+              0.7529411911964417,
+              1.0,
+              1.0
+            ]
+          ]
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        -1792.0,
+        -32.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 7,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "multiply",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        -1376.0,
+        -128.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 8,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "multiply",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        -1344.0,
+        96.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 9,
+      "class": "RadialGrid",
+      "name": "RadialGrid",
+      "params": {
+        "count": 16,
+        "cx": 0.5,
+        "cy": 0.5,
+        "radius": 0.315,
+        "start_angle_deg": 0.0,
+        "sweep_deg": 360.0,
+        "angle_offset_deg": 0.0,
+        "tile_edge_frac": 0.15,
+        "scale": 1.9,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "rotate_mode": "radial",
+        "item_rotation_deg": 0.0,
+        "render_at_tile_resolution": true
+      },
+      "inputs": [
+        "src"
+      ],
+      "pos": [
+        -1120.0,
+        512.0
+      ],
+      "width": 322,
+      "preview_enabled": true
+    },
+    {
+      "id": 10,
+      "class": "GradientRadial",
+      "name": "Radial",
+      "params": {
+        "seed": null,
+        "opacity": 1.0,
+        "cx": 0.5,
+        "cy": 0.5,
+        "radius": 0.6400000000000001,
+        "invert": false,
+        "output_mode": "rgb",
+        "start_color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "end_color": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "color_stops": [
+          [
+            0.0,
+            [
+              1.0,
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          [
+            1.0,
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        -1376.0,
+        -224.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 11,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "multiply",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        -672.0,
+        -64.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 12,
+      "class": "Levels",
+      "name": "Levels",
+      "params": {
+        "in_black": 0.454,
+        "in_white": 0.546,
+        "gamma": 1.0,
+        "out_black": 0.0,
+        "out_white": 1.0,
+        "a_in_black": 0.0,
+        "a_in_white": 1.0,
+        "a_gamma": 1.0,
+        "a_out_black": 0.0,
+        "a_out_white": 1.0,
+        "opacity": 1.0,
+        "mask_channel": "a"
+      },
+      "inputs": [
+        "image",
+        "mask"
+      ],
+      "pos": [
+        -992.0,
+        -224.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 13,
+      "class": "Circle",
+      "name": "Circle",
+      "params": {
+        "cx": 0.5,
+        "cy": 0.5,
+        "radius": 0.27,
+        "edge_softness": 0.0,
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        160.0,
+        864.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 14,
+      "class": "Outline",
+      "name": "Outline",
+      "params": {
+        "seed": null,
+        "opacity": 1.0,
+        "thickness": 2.0,
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "inputs": [
+        "src"
+      ],
+      "pos": [
+        416.0,
+        864.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 15,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "add",
+        "opacity": 0.5,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        1056.0,
+        832.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 16,
+      "class": "GaussianBlur",
+      "name": "Blur",
+      "params": {
+        "sigma": 8.0,
+        "alpha_only": false
+      },
+      "inputs": [
+        "image"
+      ],
+      "pos": [
+        704.0,
+        864.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 17,
+      "class": "Circle",
+      "name": "Circle",
+      "params": {
+        "cx": 0.5,
+        "cy": 0.5,
+        "radius": 0.34,
+        "edge_softness": 0.0,
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        -384.0,
+        1248.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 18,
+      "class": "Outline",
+      "name": "Outline",
+      "params": {
+        "seed": null,
+        "opacity": 1.0,
+        "thickness": 2.0,
+        "color": [
+          0.13333334028720856,
+          0.4745098054409027,
+          0.6196078658103943,
+          0.3921568691730499
+        ]
+      },
+      "inputs": [
+        "src"
+      ],
+      "pos": [
+        0.0,
+        1248.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 19,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "add",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        1408.0,
+        832.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 20,
+      "class": "GaussianBlur",
+      "name": "Blur",
+      "params": {
+        "sigma": 1.0,
+        "alpha_only": false
+      },
+      "inputs": [
+        "image"
+      ],
+      "pos": [
+        2912.0,
+        1056.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 21,
+      "class": "Line",
+      "name": "Line",
+      "params": {
+        "seed": null,
+        "opacity": 1.0,
+        "x0": 0.5,
+        "y0": 0.0,
+        "x1": 0.5,
+        "y1": 1.0,
+        "width": 0.25,
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "antialias": 2
+      },
+      "inputs": [],
+      "pos": [
+        -128.0,
+        1536.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 22,
+      "class": "RadialGrid",
+      "name": "RadialGrid",
+      "params": {
+        "count": 48,
+        "cx": 0.5,
+        "cy": 0.5,
+        "radius": 0.3,
+        "start_angle_deg": 0.0,
+        "sweep_deg": 360.0,
+        "angle_offset_deg": 0.0,
+        "tile_edge_frac": 0.15,
+        "scale": 1.0,
+        "scale_x": 1.0,
+        "scale_y": 4.0,
+        "rotate_mode": "radial",
+        "item_rotation_deg": 0.0,
+        "render_at_tile_resolution": true
+      },
+      "inputs": [
+        "src"
+      ],
+      "pos": [
+        192.0,
+        1536.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 23,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "subtract",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        608.0,
+        1472.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 24,
+      "class": "Circle",
+      "name": "Circle_copy",
+      "params": {
+        "cx": 0.5,
+        "cy": 0.5,
+        "radius": 0.395,
+        "edge_softness": 0.0,
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        -416.0,
+        1376.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 25,
+      "class": "Outline",
+      "name": "Outline",
+      "params": {
+        "seed": null,
+        "opacity": 1.0,
+        "thickness": 3.0,
+        "color": [
+          0.054901961237192154,
+          0.1882352977991104,
+          0.24705882370471954,
+          0.23529411852359772
+        ]
+      },
+      "inputs": [
+        "src"
+      ],
+      "pos": [
+        0.0,
+        1376.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 26,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "add",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        1024.0,
+        1344.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 27,
+      "class": "Triangle",
+      "name": "Triangle_copy",
+      "params": {
+        "cx": 0.5,
+        "cy": 0.5,
+        "base": 0.663,
+        "height": 0.5,
+        "scale": 1.0,
+        "rotation_deg": 180.0,
+        "edge_softness": 0.0,
+        "equilateral": true,
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        -2816.0,
+        160.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 28,
+      "class": "Circle",
+      "name": "Circle",
+      "params": {
+        "cx": 0.5,
+        "cy": 0.5,
+        "radius": 0.35,
+        "edge_softness": 0.0,
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        -3168.0,
+        -64.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 29,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "subtract",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        -2464.0,
+        -192.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 30,
+      "class": "GradientAngle",
+      "name": "Angle_copy_copy",
+      "params": {
+        "seed": null,
+        "opacity": 1.0,
+        "cx": 0.5,
+        "cy": 0.5,
+        "angle_offset_deg": 100.0,
+        "invert": false,
+        "output_mode": "rgb",
+        "start_color": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "end_color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "color_stops": [
+          [
+            0.0,
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          [
+            1.0,
+            [
+              1.0,
+              0.364705890417099,
+              0.11372549086809158,
+              1.0
+            ]
+          ]
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        -2272.0,
+        384.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 31,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "multiply",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        -1664.0,
+        352.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 32,
+      "class": "Combine",
+      "name": "Combine",
+      "params": {
+        "r_src": "luma",
+        "g_src": "luma",
+        "b_src": "luma",
+        "a_src": "luma",
+        "use_source_alpha": true
+      },
+      "inputs": [
+        "r",
+        "g",
+        "b",
+        "a"
+      ],
+      "pos": [
+        -608.0,
+        128.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 33,
+      "class": "Split",
+      "name": "Split",
+      "params": {},
+      "inputs": [
+        "image"
+      ],
+      "pos": [
+        -992.0,
+        128.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 34,
+      "class": "Constant",
+      "name": "Constant",
+      "params": {
+        "seed": null,
+        "opacity": 1.0,
+        "color": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        -1696.0,
+        544.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 35,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "add",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        -1280.0,
+        352.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 36,
+      "class": "GradientRadial",
+      "name": "Radial",
+      "params": {
+        "seed": null,
+        "opacity": 1.0,
+        "cx": 0.5,
+        "cy": 0.5,
+        "radius": 0.51,
+        "invert": false,
+        "output_mode": "color",
+        "start_color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "end_color": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "color_stops": [
+          [
+            0.0,
+            [
+              1.0,
+              0.6470588445663452,
+              0.529411792755127,
+              1.0
+            ]
+          ],
+          [
+            0.478584729981378,
+            [
+              1.0,
+              0.364705890417099,
+              0.11372549086809158,
+              1.0
+            ]
+          ],
+          [
+            0.6815642458100558,
+            [
+              0.13725490868091583,
+              0.05098039284348488,
+              0.01568627543747425,
+              1.0
+            ]
+          ],
+          [
+            0.8817504655493482,
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        -1760.0,
+        64.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 37,
+      "class": "GradientReflected",
+      "name": "Reflected",
+      "params": {
+        "seed": null,
+        "opacity": 1.0,
+        "angle_deg": 90.0,
+        "midpoint": 0.4,
+        "invert": false,
+        "output_mode": "rgb",
+        "start_color": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "end_color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "color_stops": [
+          [
+            0.0,
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          [
+            1.0,
+            [
+              1.0,
+              1.0,
+              1.0,
+              1.0
+            ]
+          ]
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        1728.0,
+        1312.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 38,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "overlay",
+        "opacity": 0.7,
+        "mask_channel": "a",
+        "affect_alpha": false,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        2464.0,
+        1056.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 39,
+      "class": "Circle",
+      "name": "Circle",
+      "params": {
+        "cx": 0.5,
+        "cy": 0.5,
+        "radius": 0.395,
+        "edge_softness": 0.03,
+        "color": [
+          0.03921568766236305,
+          0.12941177189350128,
+          0.18431372940540314,
+          1.0
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        896.0,
+        992.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 40,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "add",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        1760.0,
+        832.0
+      ],
+      "width": 322,
+      "preview_enabled": true
+    },
+    {
+      "id": 41,
+      "class": "GradientLinear",
+      "name": "Linear",
+      "params": {
+        "seed": null,
+        "opacity": 1.0,
+        "angle_deg": -90.0,
+        "offset": 0.0,
+        "output_mode": "rgb",
+        "invert": false,
+        "start_color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "end_color": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "color_stops": [
+          [
+            0.0,
+            [
+              1.0,
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          [
+            1.0,
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        896.0,
+        1088.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 42,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "multiply",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        1376.0,
+        992.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 43,
+      "class": "Triangle",
+      "name": "Triangle",
+      "params": {
+        "cx": 0.5,
+        "cy": 0.5,
+        "base": 0.23,
+        "height": 0.5,
+        "scale": 1.0,
+        "rotation_deg": 180.0,
+        "edge_softness": 0.0,
+        "equilateral": true,
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        -2016.0,
+        704.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 44,
+      "class": "Outline",
+      "name": "Outline",
+      "params": {
+        "seed": null,
+        "opacity": 1.0,
+        "thickness": 2.0,
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "inputs": [
+        "src"
+      ],
+      "pos": [
+        -1600.0,
+        704.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 45,
+      "class": "Circle",
+      "name": "Circle",
+      "params": {
+        "cx": 0.5,
+        "cy": 0.5,
+        "radius": 0.29,
+        "edge_softness": 0.04,
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        -1568.0,
+        992.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 46,
+      "class": "Invert",
+      "name": "Invert",
+      "params": {
+        "invert_rgb": false,
+        "invert_alpha": true,
+        "opacity": 1.0,
+        "mask_channel": "a"
+      },
+      "inputs": [
+        "image",
+        "mask"
+      ],
+      "pos": [
+        -1184.0,
+        992.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 47,
+      "class": "GradientAngle",
+      "name": "Angle",
+      "params": {
+        "seed": null,
+        "opacity": 1.0,
+        "cx": 0.5,
+        "cy": 0.5,
+        "angle_offset_deg": 100.0,
+        "invert": false,
+        "output_mode": "rgb",
+        "start_color": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "end_color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "color_stops": [
+          [
+            0.0,
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          [
+            1.0,
+            [
+              1.0,
+              1.0,
+              1.0,
+              1.0
+            ]
+          ]
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        -1024.0,
+        384.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 48,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "multiply",
+        "opacity": 1.0,
+        "mask_channel": "luma",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        -256.0,
+        384.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 49,
+      "class": "Levels",
+      "name": "Levels",
+      "params": {
+        "in_black": 0.317,
+        "in_white": 0.876,
+        "gamma": 0.6793300000000001,
+        "out_black": 0.0,
+        "out_white": 1.0,
+        "a_in_black": 0.0,
+        "a_in_white": 1.0,
+        "a_gamma": 1.0,
+        "a_out_black": 0.0,
+        "a_out_white": 1.0,
+        "opacity": 1.0,
+        "mask_channel": "a"
+      },
+      "inputs": [
+        "image",
+        "mask"
+      ],
+      "pos": [
+        -640.0,
+        384.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 50,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "subtract",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        -672.0,
+        704.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 51,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "overlay",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        160.0,
+        512.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 52,
+      "class": "Constant",
+      "name": "Constant",
+      "params": {
+        "seed": null,
+        "opacity": 1.0,
+        "color": [
+          0.583001434803009,
+          0.2710612714290619,
+          0.09098954498767853,
+          1.0
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        -256.0,
+        608.0
+      ],
+      "width": 322,
+      "preview_enabled": true
+    },
+    {
+      "id": 53,
+      "class": "Levels",
+      "name": "Levels",
+      "params": {
+        "in_black": 0.0,
+        "in_white": 1.0,
+        "gamma": 1.78822,
+        "out_black": 0.0,
+        "out_white": 1.0,
+        "a_in_black": 0.0,
+        "a_in_white": 1.0,
+        "a_gamma": 1.0,
+        "a_out_black": 0.0,
+        "a_out_white": 1.0,
+        "opacity": 1.0,
+        "mask_channel": "a"
+      },
+      "inputs": [
+        "image",
+        "mask"
+      ],
+      "pos": [
+        2080.0,
+        1312.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 54,
+      "class": "Circle",
+      "name": "Circle",
+      "params": {
+        "cx": 0.5,
+        "cy": 0.5,
+        "radius": 0.345,
+        "edge_softness": 0.06,
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        -2976.0,
+        -384.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    },
+    {
+      "id": 55,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "subtract",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        -2048.0,
+        -480.0
+      ],
+      "width": 322,
+      "preview_enabled": true
+    },
+    {
+      "id": 56,
+      "class": "Invert",
+      "name": "Invert",
+      "params": {
+        "invert_rgb": false,
+        "invert_alpha": true,
+        "opacity": 1.0,
+        "mask_channel": "a"
+      },
+      "inputs": [
+        "image",
+        "mask"
+      ],
+      "pos": [
+        -2528.0,
+        -384.0
+      ],
+      "width": 322,
+      "preview_enabled": false
+    }
+  ],
+  "edges": [
+    {
+      "src": 20,
+      "src_port": "out",
+      "dst": 0,
+      "dst_port": "src"
+    },
+    {
+      "src": 1,
+      "src_port": "out",
+      "dst": 2,
+      "dst_port": "src"
+    },
+    {
+      "src": 27,
+      "src_port": "out",
+      "dst": 3,
+      "dst_port": "src"
+    },
+    {
+      "src": 11,
+      "src_port": "out",
+      "dst": 4,
+      "dst_port": "base"
+    },
+    {
+      "src": 32,
+      "src_port": "out",
+      "dst": 4,
+      "dst_port": "blend"
+    },
+    {
+      "src": 4,
+      "src_port": "out",
+      "dst": 5,
+      "dst_port": "base"
+    },
+    {
+      "src": 51,
+      "src_port": "out",
+      "dst": 5,
+      "dst_port": "blend"
+    },
+    {
+      "src": 55,
+      "src_port": "out",
+      "dst": 7,
+      "dst_port": "base"
+    },
+    {
+      "src": 6,
+      "src_port": "out",
+      "dst": 7,
+      "dst_port": "blend"
+    },
+    {
+      "src": 55,
+      "src_port": "out",
+      "dst": 7,
+      "dst_port": "mask"
+    },
+    {
+      "src": 3,
+      "src_port": "out",
+      "dst": 8,
+      "dst_port": "base"
+    },
+    {
+      "src": 36,
+      "src_port": "out",
+      "dst": 8,
+      "dst_port": "blend"
+    },
+    {
+      "src": 3,
+      "src_port": "out",
+      "dst": 8,
+      "dst_port": "mask"
+    },
+    {
+      "src": 44,
+      "src_port": "out",
+      "dst": 9,
+      "dst_port": "src"
+    },
+    {
+      "src": 7,
+      "src_port": "out",
+      "dst": 11,
+      "dst_port": "base"
+    },
+    {
+      "src": 12,
+      "src_port": "out",
+      "dst": 11,
+      "dst_port": "blend"
+    },
+    {
+      "src": 7,
+      "src_port": "out",
+      "dst": 11,
+      "dst_port": "mask"
+    },
+    {
+      "src": 10,
+      "src_port": "out",
+      "dst": 12,
+      "dst_port": "image"
+    },
+    {
+      "src": 13,
+      "src_port": "out",
+      "dst": 14,
+      "dst_port": "src"
+    },
+    {
+      "src": 5,
+      "src_port": "out",
+      "dst": 15,
+      "dst_port": "base"
+    },
+    {
+      "src": 16,
+      "src_port": "out",
+      "dst": 15,
+      "dst_port": "blend"
+    },
+    {
+      "src": 5,
+      "src_port": "out",
+      "dst": 15,
+      "dst_port": "mask"
+    },
+    {
+      "src": 14,
+      "src_port": "out",
+      "dst": 16,
+      "dst_port": "image"
+    },
+    {
+      "src": 17,
+      "src_port": "out",
+      "dst": 18,
+      "dst_port": "src"
+    },
+    {
+      "src": 15,
+      "src_port": "out",
+      "dst": 19,
+      "dst_port": "base"
+    },
+    {
+      "src": 26,
+      "src_port": "out",
+      "dst": 19,
+      "dst_port": "blend"
+    },
+    {
+      "src": 38,
+      "src_port": "out",
+      "dst": 20,
+      "dst_port": "image"
+    },
+    {
+      "src": 21,
+      "src_port": "out",
+      "dst": 22,
+      "dst_port": "src"
+    },
+    {
+      "src": 18,
+      "src_port": "out",
+      "dst": 23,
+      "dst_port": "base"
+    },
+    {
+      "src": 22,
+      "src_port": "out",
+      "dst": 23,
+      "dst_port": "blend"
+    },
+    {
+      "src": 24,
+      "src_port": "out",
+      "dst": 25,
+      "dst_port": "src"
+    },
+    {
+      "src": 23,
+      "src_port": "out",
+      "dst": 26,
+      "dst_port": "base"
+    },
+    {
+      "src": 25,
+      "src_port": "out",
+      "dst": 26,
+      "dst_port": "blend"
+    },
+    {
+      "src": 2,
+      "src_port": "out",
+      "dst": 29,
+      "dst_port": "base"
+    },
+    {
+      "src": 28,
+      "src_port": "out",
+      "dst": 29,
+      "dst_port": "blend"
+    },
+    {
+      "src": 3,
+      "src_port": "out",
+      "dst": 31,
+      "dst_port": "base"
+    },
+    {
+      "src": 30,
+      "src_port": "out",
+      "dst": 31,
+      "dst_port": "blend"
+    },
+    {
+      "src": 3,
+      "src_port": "out",
+      "dst": 31,
+      "dst_port": "mask"
+    },
+    {
+      "src": 33,
+      "src_port": "r",
+      "dst": 32,
+      "dst_port": "r"
+    },
+    {
+      "src": 33,
+      "src_port": "g",
+      "dst": 32,
+      "dst_port": "g"
+    },
+    {
+      "src": 33,
+      "src_port": "b",
+      "dst": 32,
+      "dst_port": "b"
+    },
+    {
+      "src": 35,
+      "src_port": "out",
+      "dst": 32,
+      "dst_port": "a"
+    },
+    {
+      "src": 8,
+      "src_port": "out",
+      "dst": 33,
+      "dst_port": "image"
+    },
+    {
+      "src": 34,
+      "src_port": "out",
+      "dst": 35,
+      "dst_port": "base"
+    },
+    {
+      "src": 31,
+      "src_port": "out",
+      "dst": 35,
+      "dst_port": "blend"
+    },
+    {
+      "src": 40,
+      "src_port": "out",
+      "dst": 38,
+      "dst_port": "base"
+    },
+    {
+      "src": 53,
+      "src_port": "out",
+      "dst": 38,
+      "dst_port": "blend"
+    },
+    {
+      "src": 40,
+      "src_port": "out",
+      "dst": 38,
+      "dst_port": "mask"
+    },
+    {
+      "src": 19,
+      "src_port": "out",
+      "dst": 40,
+      "dst_port": "base"
+    },
+    {
+      "src": 42,
+      "src_port": "out",
+      "dst": 40,
+      "dst_port": "blend"
+    },
+    {
+      "src": 39,
+      "src_port": "out",
+      "dst": 42,
+      "dst_port": "base"
+    },
+    {
+      "src": 41,
+      "src_port": "out",
+      "dst": 42,
+      "dst_port": "blend"
+    },
+    {
+      "src": 39,
+      "src_port": "out",
+      "dst": 42,
+      "dst_port": "mask"
+    },
+    {
+      "src": 43,
+      "src_port": "out",
+      "dst": 44,
+      "dst_port": "src"
+    },
+    {
+      "src": 45,
+      "src_port": "out",
+      "dst": 46,
+      "dst_port": "image"
+    },
+    {
+      "src": 50,
+      "src_port": "out",
+      "dst": 48,
+      "dst_port": "base"
+    },
+    {
+      "src": 49,
+      "src_port": "out",
+      "dst": 48,
+      "dst_port": "blend"
+    },
+    {
+      "src": 50,
+      "src_port": "out",
+      "dst": 48,
+      "dst_port": "mask"
+    },
+    {
+      "src": 47,
+      "src_port": "out",
+      "dst": 49,
+      "dst_port": "image"
+    },
+    {
+      "src": 9,
+      "src_port": "out",
+      "dst": 50,
+      "dst_port": "base"
+    },
+    {
+      "src": 46,
+      "src_port": "out",
+      "dst": 50,
+      "dst_port": "blend"
+    },
+    {
+      "src": 9,
+      "src_port": "out",
+      "dst": 50,
+      "dst_port": "mask"
+    },
+    {
+      "src": 48,
+      "src_port": "out",
+      "dst": 51,
+      "dst_port": "base"
+    },
+    {
+      "src": 52,
+      "src_port": "out",
+      "dst": 51,
+      "dst_port": "blend"
+    },
+    {
+      "src": 48,
+      "src_port": "out",
+      "dst": 51,
+      "dst_port": "mask"
+    },
+    {
+      "src": 37,
+      "src_port": "out",
+      "dst": 53,
+      "dst_port": "image"
+    },
+    {
+      "src": 29,
+      "src_port": "out",
+      "dst": 55,
+      "dst_port": "base"
+    },
+    {
+      "src": 56,
+      "src_port": "out",
+      "dst": 55,
+      "dst_port": "blend"
+    },
+    {
+      "src": 54,
+      "src_port": "out",
+      "dst": 56,
+      "dst_port": "image"
+    }
+  ]
+}

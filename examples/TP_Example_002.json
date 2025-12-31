@@ -1,0 +1,750 @@
+{
+  "version": 1,
+  "graph_size": 512,
+  "preview_size": 256,
+  "ui_scale": 1.0,
+  "nodes": [
+    {
+      "id": 0,
+      "class": "Output",
+      "name": "Output",
+      "params": {},
+      "inputs": [
+        "src"
+      ],
+      "pos": [
+        2784.0,
+        -64.0
+      ],
+      "width": 322,
+      "preview_enabled": true
+    },
+    {
+      "id": 1,
+      "class": "Triangle",
+      "name": "Triangle",
+      "params": {
+        "cx": 0.5,
+        "cy": 0.5,
+        "base": 0.5,
+        "height": 0.5,
+        "scale": 1.0,
+        "rotation_deg": 0.0,
+        "edge_softness": 0.0,
+        "equilateral": true,
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        -864.0,
+        -224.0
+      ],
+      "width": 300,
+      "preview_enabled": true
+    },
+    {
+      "id": 2,
+      "class": "WorleyNoise",
+      "name": "Worley",
+      "params": {
+        "seed": 43,
+        "opacity": 1.0,
+        "points": 16,
+        "jitter": 1.0,
+        "metric": "euclidean"
+      },
+      "inputs": [],
+      "pos": [
+        -864.0,
+        480.0
+      ],
+      "width": 300,
+      "preview_enabled": false
+    },
+    {
+      "id": 3,
+      "class": "GradientReflected",
+      "name": "Reflected",
+      "params": {
+        "seed": null,
+        "opacity": 1.0,
+        "angle_deg": 0.0,
+        "midpoint": 0.5,
+        "invert": false,
+        "output_mode": "rgb",
+        "start_color": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "end_color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "color_stops": [
+          [
+            0.0,
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          [
+            1.0,
+            [
+              1.0,
+              1.0,
+              1.0,
+              1.0
+            ]
+          ]
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        -864.0,
+        320.0
+      ],
+      "width": 300,
+      "preview_enabled": false
+    },
+    {
+      "id": 4,
+      "class": "GradientLinear",
+      "name": "Linear",
+      "params": {
+        "seed": null,
+        "opacity": 1.0,
+        "angle_deg": 0.0,
+        "offset": 0.0,
+        "output_mode": "rgb",
+        "invert": false,
+        "start_color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "end_color": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "color_stops": [
+          [
+            0.0,
+            [
+              1.0,
+              1.0,
+              1.0,
+              1.0
+            ]
+          ],
+          [
+            1.0,
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        -512.0,
+        640.0
+      ],
+      "width": 300,
+      "preview_enabled": false
+    },
+    {
+      "id": 5,
+      "class": "Transform",
+      "name": "Transform",
+      "params": {
+        "tx": 0.0,
+        "ty": 0.0,
+        "scale": 1.0,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "rotation_deg": 169.5,
+        "pivot_cx": 0.5,
+        "pivot_cy": 0.5,
+        "falloff_channel": "luma"
+      },
+      "inputs": [
+        "image",
+        "falloff"
+      ],
+      "pos": [
+        -160.0,
+        -32.0
+      ],
+      "width": 300,
+      "preview_enabled": true
+    },
+    {
+      "id": 6,
+      "class": "WorleyNoise",
+      "name": "Worley_copy",
+      "params": {
+        "seed": 42,
+        "opacity": 1.0,
+        "points": 16,
+        "jitter": 1.0,
+        "metric": "euclidean"
+      },
+      "inputs": [],
+      "pos": [
+        -864.0,
+        576.0
+      ],
+      "width": 300,
+      "preview_enabled": false
+    },
+    {
+      "id": 7,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "add",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        -512.0,
+        480.0
+      ],
+      "width": 300,
+      "preview_enabled": false
+    },
+    {
+      "id": 8,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "multiply",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        -160.0,
+        480.0
+      ],
+      "width": 300,
+      "preview_enabled": false
+    },
+    {
+      "id": 9,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "multiply",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        192.0,
+        288.0
+      ],
+      "width": 300,
+      "preview_enabled": false
+    },
+    {
+      "id": 10,
+      "class": "RadialGrid",
+      "name": "RadialGrid",
+      "params": {
+        "count": 16,
+        "cx": 0.5,
+        "cy": 0.5,
+        "radius": 0.35,
+        "start_angle_deg": 0.0,
+        "sweep_deg": 360.0,
+        "angle_offset_deg": 0.0,
+        "tile_edge_frac": 0.15,
+        "scale": 2.88,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "rotate_mode": "radial",
+        "item_rotation_deg": 0.0,
+        "render_at_tile_resolution": true
+      },
+      "inputs": [
+        "src"
+      ],
+      "pos": [
+        864.0,
+        288.0
+      ],
+      "width": 300,
+      "preview_enabled": true
+    },
+    {
+      "id": 11,
+      "class": "GaussianBlur",
+      "name": "Blur",
+      "params": {
+        "sigma": 3.0,
+        "alpha_only": false
+      },
+      "inputs": [
+        "image"
+      ],
+      "pos": [
+        544.0,
+        288.0
+      ],
+      "width": 300,
+      "preview_enabled": true
+    },
+    {
+      "id": 12,
+      "class": "Levels",
+      "name": "Levels",
+      "params": {
+        "in_black": 0.027,
+        "in_white": 0.613,
+        "gamma": 1.0,
+        "out_black": 0.0,
+        "out_white": 1.0,
+        "a_in_black": 0.0,
+        "a_in_white": 1.0,
+        "a_gamma": 1.0,
+        "a_out_black": 0.0,
+        "a_out_white": 1.0,
+        "opacity": 1.0,
+        "mask_channel": "a"
+      },
+      "inputs": [
+        "image",
+        "mask"
+      ],
+      "pos": [
+        1216.0,
+        288.0
+      ],
+      "width": 300,
+      "preview_enabled": false
+    },
+    {
+      "id": 13,
+      "class": "Triangle",
+      "name": "Triangle_copy",
+      "params": {
+        "cx": 0.5,
+        "cy": 0.475,
+        "base": 0.312,
+        "height": 0.5,
+        "scale": 1.0,
+        "rotation_deg": 0.0,
+        "edge_softness": 0.0,
+        "equilateral": true,
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        -864.0,
+        192.0
+      ],
+      "width": 300,
+      "preview_enabled": false
+    },
+    {
+      "id": 14,
+      "class": "Blend",
+      "name": "Blend",
+      "params": {
+        "mode": "subtract",
+        "opacity": 1.0,
+        "mask_channel": "a",
+        "affect_alpha": true,
+        "subtract_as_cutout": false,
+        "use_blend_as_mask_when_no_mask": true
+      },
+      "inputs": [
+        "base",
+        "blend",
+        "mask"
+      ],
+      "pos": [
+        -512.0,
+        96.0
+      ],
+      "width": 300,
+      "preview_enabled": false
+    },
+    {
+      "id": 15,
+      "class": "GradientReflected",
+      "name": "Reflected",
+      "params": {
+        "seed": null,
+        "opacity": 1.0,
+        "angle_deg": 90.0,
+        "midpoint": 0.5,
+        "invert": true,
+        "output_mode": "color",
+        "start_color": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "end_color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "color_stops": [
+          [
+            0.0,
+            [
+              0.9843137264251709,
+              1.0,
+              0.886274516582489,
+              1.0
+            ]
+          ],
+          [
+            1.0,
+            [
+              0.9882352948188782,
+              1.0,
+              0.7372549176216125,
+              1.0
+            ]
+          ]
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        1216.0,
+        160.0
+      ],
+      "width": 300,
+      "preview_enabled": false
+    },
+    {
+      "id": 16,
+      "class": "GradientReflected",
+      "name": "Reflected_copy",
+      "params": {
+        "seed": null,
+        "opacity": 1.0,
+        "angle_deg": 90.0,
+        "midpoint": 0.5,
+        "invert": false,
+        "output_mode": "color",
+        "start_color": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "end_color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "color_stops": [
+          [
+            0.0,
+            [
+              0.1921568661928177,
+              0.1411764770746231,
+              0.027450980618596077,
+              1.0
+            ]
+          ],
+          [
+            1.0,
+            [
+              0.3529411852359772,
+              0.250980406999588,
+              0.07058823853731155,
+              1.0
+            ]
+          ]
+        ]
+      },
+      "inputs": [],
+      "pos": [
+        1216.0,
+        64.0
+      ],
+      "width": 300,
+      "preview_enabled": false
+    },
+    {
+      "id": 17,
+      "class": "Lerp",
+      "name": "Lerp",
+      "params": {
+        "seed": null,
+        "opacity": 1.0
+      },
+      "inputs": [
+        "a",
+        "b",
+        "t"
+      ],
+      "pos": [
+        1600.0,
+        128.0
+      ],
+      "width": 300,
+      "preview_enabled": false
+    },
+    {
+      "id": 18,
+      "class": "Split",
+      "name": "Split",
+      "params": {},
+      "inputs": [
+        "image"
+      ],
+      "pos": [
+        1952.0,
+        128.0
+      ],
+      "width": 300,
+      "preview_enabled": false
+    },
+    {
+      "id": 19,
+      "class": "Combine",
+      "name": "Combine",
+      "params": {
+        "r_src": "luma",
+        "g_src": "luma",
+        "b_src": "luma",
+        "a_src": "a",
+        "use_source_alpha": true
+      },
+      "inputs": [
+        "r",
+        "g",
+        "b",
+        "a"
+      ],
+      "pos": [
+        2400.0,
+        -64.0
+      ],
+      "width": 300,
+      "preview_enabled": true
+    },
+    {
+      "id": 20,
+      "class": "Levels",
+      "name": "Levels",
+      "params": {
+        "in_black": 0.0,
+        "in_white": 0.092,
+        "gamma": 1.0,
+        "out_black": 0.0,
+        "out_white": 1.0,
+        "a_in_black": 0.0,
+        "a_in_white": 1.0,
+        "a_gamma": 1.0,
+        "a_out_black": 0.0,
+        "a_out_white": 1.0,
+        "opacity": 1.0,
+        "mask_channel": "a"
+      },
+      "inputs": [
+        "image",
+        "mask"
+      ],
+      "pos": [
+        1600.0,
+        288.0
+      ],
+      "width": 300,
+      "preview_enabled": false
+    }
+  ],
+  "edges": [
+    {
+      "src": 19,
+      "src_port": "out",
+      "dst": 0,
+      "dst_port": "src"
+    },
+    {
+      "src": 14,
+      "src_port": "out",
+      "dst": 5,
+      "dst_port": "image"
+    },
+    {
+      "src": 3,
+      "src_port": "out",
+      "dst": 5,
+      "dst_port": "falloff"
+    },
+    {
+      "src": 2,
+      "src_port": "out",
+      "dst": 7,
+      "dst_port": "base"
+    },
+    {
+      "src": 6,
+      "src_port": "out",
+      "dst": 7,
+      "dst_port": "blend"
+    },
+    {
+      "src": 7,
+      "src_port": "out",
+      "dst": 8,
+      "dst_port": "base"
+    },
+    {
+      "src": 4,
+      "src_port": "out",
+      "dst": 8,
+      "dst_port": "blend"
+    },
+    {
+      "src": 5,
+      "src_port": "out",
+      "dst": 9,
+      "dst_port": "base"
+    },
+    {
+      "src": 8,
+      "src_port": "out",
+      "dst": 9,
+      "dst_port": "blend"
+    },
+    {
+      "src": 5,
+      "src_port": "out",
+      "dst": 9,
+      "dst_port": "mask"
+    },
+    {
+      "src": 11,
+      "src_port": "out",
+      "dst": 10,
+      "dst_port": "src"
+    },
+    {
+      "src": 9,
+      "src_port": "out",
+      "dst": 11,
+      "dst_port": "image"
+    },
+    {
+      "src": 10,
+      "src_port": "out",
+      "dst": 12,
+      "dst_port": "image"
+    },
+    {
+      "src": 1,
+      "src_port": "out",
+      "dst": 14,
+      "dst_port": "base"
+    },
+    {
+      "src": 13,
+      "src_port": "out",
+      "dst": 14,
+      "dst_port": "blend"
+    },
+    {
+      "src": 16,
+      "src_port": "out",
+      "dst": 17,
+      "dst_port": "a"
+    },
+    {
+      "src": 15,
+      "src_port": "out",
+      "dst": 17,
+      "dst_port": "b"
+    },
+    {
+      "src": 12,
+      "src_port": "out",
+      "dst": 17,
+      "dst_port": "t"
+    },
+    {
+      "src": 17,
+      "src_port": "out",
+      "dst": 18,
+      "dst_port": "image"
+    },
+    {
+      "src": 18,
+      "src_port": "r",
+      "dst": 19,
+      "dst_port": "r"
+    },
+    {
+      "src": 18,
+      "src_port": "g",
+      "dst": 19,
+      "dst_port": "g"
+    },
+    {
+      "src": 18,
+      "src_port": "b",
+      "dst": 19,
+      "dst_port": "b"
+    },
+    {
+      "src": 20,
+      "src_port": "out",
+      "dst": 19,
+      "dst_port": "a"
+    },
+    {
+      "src": 12,
+      "src_port": "out",
+      "dst": 20,
+      "dst_port": "image"
+    }
+  ]
+}
