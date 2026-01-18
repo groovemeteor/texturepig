@@ -25,15 +25,37 @@ from texture_pig.nodes.core import (
     mask_to_scalar,
 )
 
+from texture_pig.nodes.scalar import (
+    ScalarNodeProtocol,
+    ScalarNode,
+    Float,
+    Int,
+    ScalarAdd,
+    ScalarSub,
+    ScalarMul,
+    ScalarDiv,
+    ScalarClamp,
+)
+
 __all__ = [
-    # Protocol
+    # Protocols
     'TextureNode',
+    'ScalarNodeProtocol',
     # Base classes
     'Node',
     'Graph',
     'GenerationCacheMixin',
+    'ScalarNode',
     # Built-in nodes
     'Constant',
+    # Scalar nodes
+    'Float',
+    'Int',
+    'ScalarAdd',
+    'ScalarSub',
+    'ScalarMul',
+    'ScalarDiv',
+    'ScalarClamp',
     # Utilities
     'ensure_rgba',
     'clamp01',

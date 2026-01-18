@@ -1,11 +1,11 @@
 from __future__ import annotations
 from typing import Callable, Tuple, Optional
 
-from PySide6.QtCore import Qt, QSize, QTimer, Signal
-from PySide6.QtGui import QColor, QPainter, QPixmap, QIcon, QBrush, QPen
+from PySide6.QtCore import Qt, QSize, QTimer, Signal, QLocale
+from PySide6.QtGui import QColor, QPainter, QPixmap, QIcon, QBrush, QPen, QDoubleValidator
 from PySide6.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QFormLayout, QLineEdit, QSlider,
-    QDoubleSpinBox, QToolButton, QColorDialog, QLabel
+    QToolButton, QColorDialog, QLabel, QPushButton
 )
 
 def _clamp01(x: float) -> float:
@@ -58,6 +58,134 @@ def _checkerboard(size: int = 12) -> QPixmap:
     p.fillRect(s, s, s, s, c1)
     p.end()
     return pix
+
+class ColorNumericInput(QWidget):
+    """A text field with separate up/down buttons for color channel input."""
+
+    def __init__(self, value: float, vmin: float, vmax: float, step: float,
+                 decimals: int = 3, parent=None):
+        super().__init__(parent)
+        self.vmin = vmin
+        self.vmax = vmax
+        self.step = step
+        self.decimals = decimals
+        self._value = value
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
+
+        # Text input
+        self.line_edit = QLineEdit()
+        self.line_edit.setFixedWidth(60)
+        validator = QDoubleValidator(vmin, vmax, decimals)
+        validator.setNotation(QDoubleValidator.StandardNotation)
+        validator.setLocale(QLocale.c())  # Use '.' as decimal separator
+        self.line_edit.setValidator(validator)
+        self._update_display()
+        self.line_edit.editingFinished.connect(self._on_editing_finished)
+
+        # Button container
+        btn_container = QWidget()
+        btn_layout = QVBoxLayout(btn_container)
+        btn_layout.setContentsMargins(0, 0, 0, 0)
+        btn_layout.setSpacing(1)
+
+        # Up button
+        self.up_btn = QPushButton("▲")
+        self.up_btn.setFixedSize(20, 12)
+        self.up_btn.setStyleSheet("""
+            QPushButton {
+                background: #3a3a3a;
+                border: 1px solid #555;
+                border-radius: 2px;
+                font-size: 8px;
+                padding: 0;
+            }
+            QPushButton:hover { background: #4a4a4a; }
+            QPushButton:pressed { background: #555; }
+        """)
+        self.up_btn.setAutoRepeat(True)
+        self.up_btn.setAutoRepeatDelay(300)
+        self.up_btn.setAutoRepeatInterval(50)
+        self.up_btn.clicked.connect(self._increment)
+
+        # Down button
+        self.down_btn = QPushButton("▼")
+        self.down_btn.setFixedSize(20, 12)
+        self.down_btn.setStyleSheet("""
+            QPushButton {
+                background: #3a3a3a;
+                border: 1px solid #555;
+                border-radius: 2px;
+                font-size: 8px;
+                padding: 0;
+            }
+            QPushButton:hover { background: #4a4a4a; }
+            QPushButton:pressed { background: #555; }
+        """)
+        self.down_btn.setAutoRepeat(True)
+        self.down_btn.setAutoRepeatDelay(300)
+        self.down_btn.setAutoRepeatInterval(50)
+        self.down_btn.clicked.connect(self._decrement)
+
+        btn_layout.addWidget(self.up_btn)
+        btn_layout.addWidget(self.down_btn)
+
+        layout.addWidget(self.line_edit)
+        layout.addWidget(btn_container)
+
+        # Callback for value changes
+        self._value_changed_callback = None
+
+    def value(self) -> float:
+        return self._value
+
+    def setValue(self, v: float):
+        v = max(self.vmin, min(self.vmax, v))
+        self._value = v
+        self._update_display()
+
+    def _update_display(self):
+        self.line_edit.blockSignals(True)
+        text = f"{self._value:.{self.decimals}f}"
+        if self.decimals > 0:
+            text = text.rstrip('0').rstrip('.')
+        self.line_edit.setText(text)
+        self.line_edit.blockSignals(False)
+
+    def _increment(self):
+        new_val = min(self.vmax, self._value + self.step)
+        if new_val != self._value:
+            self._value = new_val
+            self._update_display()
+            if self._value_changed_callback:
+                self._value_changed_callback(self._value)
+
+    def _decrement(self):
+        new_val = max(self.vmin, self._value - self.step)
+        if new_val != self._value:
+            self._value = new_val
+            self._update_display()
+            if self._value_changed_callback:
+                self._value_changed_callback(self._value)
+
+    def _on_editing_finished(self):
+        try:
+            text = self.line_edit.text().replace(',', '.')
+            new_val = float(text)
+            new_val = max(self.vmin, min(self.vmax, new_val))
+            if new_val != self._value:
+                self._value = new_val
+                self._update_display()
+                if self._value_changed_callback:
+                    self._value_changed_callback(self._value)
+        except ValueError:
+            self._update_display()  # Reset to current value
+
+    def connect_value_changed(self, callback):
+        self._value_changed_callback = callback
+
 
 class ColorField(QWidget):
     """
@@ -181,14 +309,12 @@ class ColorField(QWidget):
                 background: #bbb;
             }
         """)
-        spin = QDoubleSpinBox(self)
-        spin.setDecimals(4)
-        spin.setRange(vmin, vmax)
-        spin.setSingleStep(step)
-        spin.setKeyboardTracking(False)  # only apply on Enter or focus-out
+        # Use ColorNumericInput instead of QDoubleSpinBox
+        decimals = 0 if is_hue else 3
+        spin = ColorNumericInput(0.0, vmin, vmax, step, decimals=decimals, parent=self)
 
         row.addWidget(s, 3)
-        row.addWidget(spin, 1)
+        row.addWidget(spin, 0)
 
         form = self.h_form if "Hue" in label or is_hue else self.r_form
         form.addRow(QLabel(label), row)
@@ -227,11 +353,11 @@ class ColorField(QWidget):
             self._a_s.sliderPressed.connect(self._make_slider_press_handler(self._a_s, 'a'))
             self._a_s.sliderReleased.connect(self._make_slider_release_handler())
 
-        self._r_spin.valueChanged.connect(lambda v: self._on_spin_rgba(v, 'r'))
-        self._g_spin.valueChanged.connect(lambda v: self._on_spin_rgba(v, 'g'))
-        self._b_spin.valueChanged.connect(lambda v: self._on_spin_rgba(v, 'b'))
+        self._r_spin.connect_value_changed(lambda v: self._on_spin_rgba(v, 'r'))
+        self._g_spin.connect_value_changed(lambda v: self._on_spin_rgba(v, 'g'))
+        self._b_spin.connect_value_changed(lambda v: self._on_spin_rgba(v, 'b'))
         if self._show_alpha:
-            self._a_spin.valueChanged.connect(lambda v: self._on_spin_rgba(v, 'a'))
+            self._a_spin.connect_value_changed(lambda v: self._on_spin_rgba(v, 'a'))
 
     def _wire_hsl(self):
         # Use sliderMoved instead of valueChanged to only respond to actual dragging
@@ -246,9 +372,9 @@ class ColorField(QWidget):
         self._s_s.sliderReleased.connect(self._make_slider_release_handler())
         self._l_s.sliderReleased.connect(self._make_slider_release_handler())
 
-        self._h_spin.valueChanged.connect(lambda v: self._on_spin_hsl(v, 'h'))
-        self._s_spin.valueChanged.connect(lambda v: self._on_spin_hsl(v, 's'))
-        self._l_spin.valueChanged.connect(lambda v: self._on_spin_hsl(v, 'l'))
+        self._h_spin.connect_value_changed(lambda v: self._on_spin_hsl(v, 'h'))
+        self._s_spin.connect_value_changed(lambda v: self._on_spin_hsl(v, 's'))
+        self._l_spin.connect_value_changed(lambda v: self._on_spin_hsl(v, 'l'))
 
     # ---------- Conversions ----------
     def _rgba(self) -> Tuple[float, float, float, float]:

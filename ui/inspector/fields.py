@@ -5,12 +5,13 @@ from typing import Tuple
 
 import numpy as np
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, QLocale
 from PySide6.QtWidgets import (
     QWidget, QFormLayout, QHBoxLayout, QVBoxLayout,
     QDoubleSpinBox, QSpinBox, QComboBox, QCheckBox, QFrame, QSlider,
-    QStyleOptionSlider, QStyle, QPushButton
+    QStyleOptionSlider, QStyle, QPushButton, QLineEdit
 )
+from PySide6.QtGui import QDoubleValidator, QIntValidator
 
 from texture_pig.ui.palette.color_field import ColorField
 from texture_pig.ui.commands.undo_commands import SetNodeParamCommand
@@ -32,6 +33,163 @@ class HandleOnlySlider(QSlider):
         if handle_rect.contains(event.pos()):
             super().mousePressEvent(event)
         # else: ignore click on track
+
+
+class NumericInput(QWidget):
+    """A text field with separate up/down buttons for numeric input."""
+
+    def __init__(self, value: float, vmin: float, vmax: float, step: float,
+                 decimals: int = 3, is_int: bool = False, parent=None):
+        super().__init__(parent)
+        self.vmin = vmin
+        self.vmax = vmax
+        self.step = step
+        self.decimals = decimals
+        self.is_int = is_int
+        self._value = value
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
+
+        # Text input
+        self.line_edit = QLineEdit()
+        self.line_edit.setFixedWidth(60)
+        if is_int:
+            validator = QIntValidator(int(vmin), int(vmax))
+            self.line_edit.setText(str(int(value)))
+        else:
+            validator = QDoubleValidator(vmin, vmax, decimals)
+            validator.setNotation(QDoubleValidator.StandardNotation)
+            validator.setLocale(QLocale.c())  # Use '.' as decimal separator
+            self.line_edit.setText(f"{value:.{decimals}f}".rstrip('0').rstrip('.') if decimals > 0 else str(int(value)))
+        self.line_edit.setValidator(validator)
+        self.line_edit.editingFinished.connect(self._on_editing_finished)
+
+        # Button container
+        btn_container = QWidget()
+        btn_layout = QVBoxLayout(btn_container)
+        btn_layout.setContentsMargins(0, 0, 0, 0)
+        btn_layout.setSpacing(1)
+
+        # Up button
+        self.up_btn = QPushButton("▲")
+        self.up_btn.setFixedSize(20, 12)
+        self.up_btn.setStyleSheet("""
+            QPushButton {
+                background: #3a3a3a;
+                border: 1px solid #555;
+                border-radius: 2px;
+                font-size: 8px;
+                padding: 0;
+            }
+            QPushButton:hover { background: #4a4a4a; }
+            QPushButton:pressed { background: #555; }
+        """)
+        self.up_btn.setAutoRepeat(True)
+        self.up_btn.setAutoRepeatDelay(300)
+        self.up_btn.setAutoRepeatInterval(50)
+        self.up_btn.clicked.connect(self._increment)
+
+        # Down button
+        self.down_btn = QPushButton("▼")
+        self.down_btn.setFixedSize(20, 12)
+        self.down_btn.setStyleSheet("""
+            QPushButton {
+                background: #3a3a3a;
+                border: 1px solid #555;
+                border-radius: 2px;
+                font-size: 8px;
+                padding: 0;
+            }
+            QPushButton:hover { background: #4a4a4a; }
+            QPushButton:pressed { background: #555; }
+        """)
+        self.down_btn.setAutoRepeat(True)
+        self.down_btn.setAutoRepeatDelay(300)
+        self.down_btn.setAutoRepeatInterval(50)
+        self.down_btn.clicked.connect(self._decrement)
+
+        btn_layout.addWidget(self.up_btn)
+        btn_layout.addWidget(self.down_btn)
+
+        layout.addWidget(self.line_edit)
+        layout.addWidget(btn_container)
+
+        # Callbacks
+        self._value_changed_callback = None
+        self._editing_finished_callback = None
+
+    def value(self) -> float:
+        return self._value
+
+    def setValue(self, v: float):
+        if self.is_int:
+            v = int(round(v))
+        v = max(self.vmin, min(self.vmax, v))
+        self._value = v
+        self._update_display()
+
+    def setReadOnly(self, readonly: bool):
+        self.line_edit.setReadOnly(readonly)
+        self.up_btn.setEnabled(not readonly)
+        self.down_btn.setEnabled(not readonly)
+
+    def setStyleSheet(self, style: str):
+        self.line_edit.setStyleSheet(style)
+
+    def setToolTip(self, tip: str):
+        self.line_edit.setToolTip(tip)
+
+    def _update_display(self):
+        self.line_edit.blockSignals(True)
+        if self.is_int:
+            self.line_edit.setText(str(int(self._value)))
+        else:
+            text = f"{self._value:.{self.decimals}f}"
+            # Remove trailing zeros but keep at least one decimal if decimals > 0
+            if self.decimals > 0:
+                text = text.rstrip('0').rstrip('.')
+            self.line_edit.setText(text)
+        self.line_edit.blockSignals(False)
+
+    def _increment(self):
+        new_val = min(self.vmax, self._value + self.step)
+        if new_val != self._value:
+            self._value = new_val
+            self._update_display()
+            if self._value_changed_callback:
+                self._value_changed_callback(self._value)
+
+    def _decrement(self):
+        new_val = max(self.vmin, self._value - self.step)
+        if new_val != self._value:
+            self._value = new_val
+            self._update_display()
+            if self._value_changed_callback:
+                self._value_changed_callback(self._value)
+
+    def _on_editing_finished(self):
+        try:
+            text = self.line_edit.text().replace(',', '.')
+            if self.is_int:
+                new_val = int(float(text))
+            else:
+                new_val = float(text)
+            new_val = max(self.vmin, min(self.vmax, new_val))
+            if new_val != self._value:
+                self._value = new_val
+                self._update_display()
+                if self._editing_finished_callback:
+                    self._editing_finished_callback(self._value)
+        except ValueError:
+            self._update_display()  # Reset to current value
+
+    def connect_value_changed(self, callback):
+        self._value_changed_callback = callback
+
+    def connect_editing_finished(self, callback):
+        self._editing_finished_callback = callback
 
 
 class FieldBuilder:
@@ -102,13 +260,19 @@ class FieldBuilder:
     # ---------- Simple fields ----------
 
     def add_float(self, name: str, value: float, vmin: float, vmax: float, step: float,
-                  exposable: bool = True):
+                  exposable: bool = True, connected: bool = False):
         box = QDoubleSpinBox()
-        box.setDecimals(6)
+        box.setDecimals(3)
         box.setRange(vmin, vmax)
         box.setSingleStep(step)
         box.setValue(float(value))
         box.setKeyboardTracking(False)  # Don't emit valueChanged while typing
+
+        # Style differently if connected to a scalar input
+        if connected:
+            box.setReadOnly(True)
+            box.setStyleSheet("QDoubleSpinBox { background: #2a4a5a; color: #4dd0e1; }")
+            box.setToolTip(f"Value from connected scalar input")
 
         # Track original value for proper undo
         original_value = [float(value)]
@@ -116,6 +280,8 @@ class FieldBuilder:
 
         def on_value_changed(v: float):
             # Called on arrow buttons and when Enter is pressed
+            if connected:
+                return  # Don't allow changes when connected
             new_val = float(v)
             if new_val != last_committed[0]:
                 self.inspector._on_change(name, new_val, original_value[0])
@@ -161,6 +327,74 @@ class FieldBuilder:
         else:
             self.form.addRow(name, box)
         return box
+
+    def add_float_input(self, name: str, value: float, vmin: float, vmax: float, step: float,
+                        exposable: bool = True, connected: bool = False):
+        """Add a float field using NumericInput (text field + up/down buttons)."""
+        spin = NumericInput(float(value), vmin, vmax, step, decimals=3, is_int=False)
+
+        # Style differently if connected to a scalar input
+        if connected:
+            spin.setReadOnly(True)
+            spin.line_edit.setStyleSheet("QLineEdit { background: #2a4a5a; color: #4dd0e1; }")
+            spin.setToolTip("Value from connected scalar input")
+
+        # Track original value for proper undo
+        original_value = [float(value)]
+        last_committed = [float(value)]
+
+        def on_value_changed(v: float):
+            if connected:
+                return
+            new_val = float(v)
+            if new_val != last_committed[0]:
+                self.inspector._on_change(name, new_val, original_value[0])
+                last_committed[0] = new_val
+                original_value[0] = new_val
+
+        spin.connect_value_changed(on_value_changed)
+        spin.connect_editing_finished(on_value_changed)
+
+        if exposable:
+            widget = self._wrap_with_expose_button(name, spin)
+            self.form.addRow(name, widget)
+        else:
+            self.form.addRow(name, spin)
+        return spin
+
+    def add_int_input(self, name: str, value: int, vmin: int, vmax: int, step: int = 1,
+                      exposable: bool = True, connected: bool = False):
+        """Add an int field using NumericInput (text field + up/down buttons)."""
+        spin = NumericInput(int(value), vmin, vmax, step, decimals=0, is_int=True)
+
+        # Style differently if connected to a scalar input
+        if connected:
+            spin.setReadOnly(True)
+            spin.line_edit.setStyleSheet("QLineEdit { background: #2a4a5a; color: #4dd0e1; }")
+            spin.setToolTip("Value from connected scalar input")
+
+        # Track original value for proper undo
+        original_value = [int(value)]
+        last_committed = [int(value)]
+
+        def on_value_changed(v: int):
+            if connected:
+                return
+            new_val = int(v)
+            if new_val != last_committed[0]:
+                self.inspector._on_change(name, new_val, original_value[0])
+                last_committed[0] = new_val
+                original_value[0] = new_val
+
+        spin.connect_value_changed(on_value_changed)
+        spin.connect_editing_finished(on_value_changed)
+
+        if exposable:
+            widget = self._wrap_with_expose_button(name, spin)
+            self.form.addRow(name, widget)
+        else:
+            self.form.addRow(name, spin)
+        return spin
 
     def add_bool(self, name: str, value: bool):
         cb = QCheckBox()
@@ -310,19 +544,21 @@ class FieldBuilder:
     def add_float_with_slider(self, name: str, value: float,
                               vmin: float, vmax: float, step: float,
                               slider_resolution: int = 10000,
-                              exposable: bool = True) -> Tuple[QWidget, QSlider, QDoubleSpinBox]:
+                              exposable: bool = True,
+                              connected: bool = False) -> Tuple[QWidget, QSlider, NumericInput]:
         """Simple float slider without lazy-follow easing. For most properties."""
         row = QWidget()
         layout = QHBoxLayout(row)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        spin = QDoubleSpinBox()
-        spin.setDecimals(6)
-        spin.setRange(vmin, vmax)
-        spin.setSingleStep(step)
-        spin.setValue(float(value))
-        spin.setKeyboardTracking(False)
+        spin = NumericInput(float(value), vmin, vmax, step, decimals=3, is_int=False)
+
+        # Style differently if connected to a scalar input
+        if connected:
+            spin.setReadOnly(True)
+            spin.setStyleSheet("QLineEdit { background: #2a4a5a; color: #4dd0e1; }")
+            spin.setToolTip("Value from connected scalar input")
 
         slider = QSlider(Qt.Horizontal)
         slider.setMinimum(0)
@@ -373,7 +609,7 @@ class FieldBuilder:
         slider.setValue(f2i(value))
 
         layout.addWidget(slider, stretch=3)
-        layout.addWidget(spin, stretch=1)
+        layout.addWidget(spin, stretch=0)
 
         pending_value = [float(value)]
         original_value = [float(value)]
@@ -393,23 +629,29 @@ class FieldBuilder:
         debounce_timer.timeout.connect(commit_value)
 
         def on_slider_pressed():
+            if connected:
+                return
             debounce_timer.stop()
             original_value[0] = float(spin.value())
 
         def on_slider_released():
+            if connected:
+                return
             debounce_timer.start(SLIDER_DEBOUNCE_MS)
 
         def on_slider_changed(i: int):
+            if connected:
+                return
             if self.inspector.current_node_item is not editing_node_item[0]:
                 return
             f = i2f(i)
-            spin.blockSignals(True)
             spin.setValue(f)
-            spin.blockSignals(False)
             pending_value[0] = float(f)
             self.inspector._on_live_change(name, f)
 
         def on_spin_value_changed(f: float):
+            if connected:
+                return
             if self.inspector.current_node_item is not editing_node_item[0]:
                 return
             i = f2i(f)
@@ -420,11 +662,12 @@ class FieldBuilder:
             self.inspector._on_live_change(name, f)
             debounce_timer.start(SLIDER_DEBOUNCE_MS)
 
-        def on_spin_finished():
+        def on_spin_finished(f: float):
+            if connected:
+                return
             if self.inspector.current_node_item is not editing_node_item[0]:
                 return
             debounce_timer.stop()
-            f = float(spin.value())
             pending_value[0] = float(f)
             self.inspector._on_change(name, f, original_value[0])
             original_value[0] = f
@@ -432,8 +675,12 @@ class FieldBuilder:
         slider.sliderPressed.connect(on_slider_pressed)
         slider.sliderReleased.connect(on_slider_released)
         slider.valueChanged.connect(on_slider_changed)
-        spin.valueChanged.connect(on_spin_value_changed)
-        spin.editingFinished.connect(on_spin_finished)
+
+        # Disable slider when connected
+        if connected:
+            slider.setEnabled(False)
+        spin.connect_value_changed(on_spin_value_changed)
+        spin.connect_editing_finished(on_spin_finished)
 
         # Wrap with expose button if exposable
         if exposable:
@@ -446,19 +693,21 @@ class FieldBuilder:
     def add_float_scale_slider(self, name: str, value: float,
                                vmin: float, vmax: float, step: float,
                                slider_resolution: int = 10000,
-                               exposable: bool = True) -> Tuple[QWidget, QSlider, QDoubleSpinBox]:
+                               exposable: bool = True,
+                               connected: bool = False) -> Tuple[QWidget, QSlider, NumericInput]:
         """Float slider with lazy-follow easing. Use only for scale, scale_x, scale_y."""
         row = QWidget()
         layout = QHBoxLayout(row)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        spin = QDoubleSpinBox()
-        spin.setDecimals(6)
-        spin.setRange(vmin, vmax)
-        spin.setSingleStep(step)
-        spin.setValue(float(value))
-        spin.setKeyboardTracking(False)
+        spin = NumericInput(float(value), vmin, vmax, step, decimals=3, is_int=False)
+
+        # Style differently if connected to a scalar input
+        if connected:
+            spin.setReadOnly(True)
+            spin.setStyleSheet("QLineEdit { background: #2a4a5a; color: #4dd0e1; }")
+            spin.setToolTip("Value from connected scalar input")
 
         slider = HandleOnlySlider(Qt.Horizontal)
         slider.setMinimum(0)
@@ -510,7 +759,7 @@ class FieldBuilder:
         slider.setValue(f2i(value))
 
         layout.addWidget(slider, stretch=3)
-        layout.addWidget(spin, stretch=1)
+        layout.addWidget(spin, stretch=0)
 
         # State tracking
         pending_value = [float(value)]
@@ -557,6 +806,8 @@ class FieldBuilder:
         debounce_timer.timeout.connect(commit_value)
 
         def on_slider_pressed():
+            if connected:
+                return
             is_dragging[0] = True
             debounce_timer.stop()
             preview_timer.stop()  # Stop preview timer on new drag
@@ -569,6 +820,8 @@ class FieldBuilder:
             slider.blockSignals(False)
 
         def on_slider_released():
+            if connected:
+                return
             is_dragging[0] = False
             # Snap slider to match the actual (lagged) value
             slider.blockSignals(True)
@@ -581,6 +834,8 @@ class FieldBuilder:
             debounce_timer.start(SLIDER_DEBOUNCE_MS)
 
         def on_slider_moved(i: int):
+            if connected:
+                return
             # Only fires during actual dragging, not on track clicks
             if self.inspector.current_node_item is not editing_node_item[0]:
                 return
@@ -602,14 +857,14 @@ class FieldBuilder:
             lagged_pos = max(0, min(slider_resolution, lagged_pos))
 
             f = i2f(int(lagged_pos))
-            spin.blockSignals(True)
             spin.setValue(f)
-            spin.blockSignals(False)
             pending_value[0] = float(f)
             # Debounce preview update - only trigger after slider stops moving for 300ms
             preview_timer.start(PREVIEW_DEBOUNCE_MS)
 
         def on_spin_value_changed(f: float):
+            if connected:
+                return
             # Safety check
             if self.inspector.current_node_item is not editing_node_item[0]:
                 return
@@ -624,13 +879,14 @@ class FieldBuilder:
             # Debounce for arrows (valueChanged fires for arrows but not Enter)
             debounce_timer.start(SLIDER_DEBOUNCE_MS)
 
-        def on_spin_finished():
+        def on_spin_finished(f: float):
+            if connected:
+                return
             # Safety check
             if self.inspector.current_node_item is not editing_node_item[0]:
                 return
             # Enter key or focus loss - commit immediately
             debounce_timer.stop()
-            f = float(spin.value())
             pending_value[0] = float(f)
             self.inspector._on_change(name, f, original_value[0])
             # Reset original to current for next edit
@@ -639,8 +895,12 @@ class FieldBuilder:
         slider.sliderPressed.connect(on_slider_pressed)
         slider.sliderReleased.connect(on_slider_released)
         slider.sliderMoved.connect(on_slider_moved)  # Use sliderMoved instead of valueChanged
-        spin.valueChanged.connect(on_spin_value_changed)
-        spin.editingFinished.connect(on_spin_finished)
+        spin.connect_value_changed(on_spin_value_changed)
+        spin.connect_editing_finished(on_spin_finished)
+
+        # Disable slider when connected
+        if connected:
+            slider.setEnabled(False)
 
         # Wrap with expose button if exposable
         if exposable:
@@ -651,18 +911,21 @@ class FieldBuilder:
         return row, slider, spin
 
     def add_int_with_slider(self, name: str, value: int, vmin: int, vmax: int, step: int = 1,
-                            exposable: bool = True) -> Tuple[QWidget, QSlider, QSpinBox]:
+                            exposable: bool = True,
+                            connected: bool = False) -> Tuple[QWidget, QSlider, NumericInput]:
         """Simple int slider without lazy-follow easing. For most properties."""
         row = QWidget()
         layout = QHBoxLayout(row)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        spin = QSpinBox()
-        spin.setRange(vmin, vmax)
-        spin.setSingleStep(step)
-        spin.setValue(int(value))
-        spin.setKeyboardTracking(False)
+        spin = NumericInput(int(value), vmin, vmax, step, decimals=0, is_int=True)
+
+        # Style differently if connected to a scalar input
+        if connected:
+            spin.setReadOnly(True)
+            spin.setStyleSheet("QLineEdit { background: #2a4a5a; color: #4dd0e1; }")
+            spin.setToolTip("Value from connected scalar input")
 
         slider = QSlider(Qt.Horizontal)
         slider.setMinimum(int(vmin))
@@ -722,48 +985,61 @@ class FieldBuilder:
         debounce_timer.timeout.connect(commit_value)
 
         def on_slider_pressed():
+            if connected:
+                return
             debounce_timer.stop()
             original_value[0] = int(spin.value())
 
         def on_slider_released():
+            if connected:
+                return
             debounce_timer.start(SLIDER_DEBOUNCE_MS)
 
         def on_slider_changed(i: int):
+            if connected:
+                return
             if self.inspector.current_node_item is not editing_node_item[0]:
                 return
-            spin.blockSignals(True)
             spin.setValue(i)
-            spin.blockSignals(False)
             pending_value[0] = int(i)
             self.inspector._on_live_change(name, i)
 
-        def on_spin_value_changed(i: int):
+        def on_spin_value_changed(v: float):
+            if connected:
+                return
             if self.inspector.current_node_item is not editing_node_item[0]:
                 return
+            i = int(v)
             slider.blockSignals(True)
             slider.setValue(i)
             slider.blockSignals(False)
-            pending_value[0] = int(i)
+            pending_value[0] = i
             self.inspector._on_live_change(name, i)
             debounce_timer.start(SLIDER_DEBOUNCE_MS)
 
-        def on_spin_finished():
+        def on_spin_finished(v: float):
+            if connected:
+                return
             if self.inspector.current_node_item is not editing_node_item[0]:
                 return
             debounce_timer.stop()
-            i = int(spin.value())
-            pending_value[0] = int(i)
+            i = int(v)
+            pending_value[0] = i
             self.inspector._on_change(name, i, original_value[0])
             original_value[0] = i
 
         slider.sliderPressed.connect(on_slider_pressed)
         slider.sliderReleased.connect(on_slider_released)
         slider.valueChanged.connect(on_slider_changed)
-        spin.valueChanged.connect(on_spin_value_changed)
-        spin.editingFinished.connect(on_spin_finished)
+        spin.connect_value_changed(on_spin_value_changed)
+        spin.connect_editing_finished(on_spin_finished)
+
+        # Disable slider when connected
+        if connected:
+            slider.setEnabled(False)
 
         layout.addWidget(slider, stretch=3)
-        layout.addWidget(spin, stretch=1)
+        layout.addWidget(spin, stretch=0)
 
         # Wrap with expose button if exposable
         if exposable:
@@ -774,18 +1050,14 @@ class FieldBuilder:
         return row, slider, spin
 
     def add_int_scale_slider(self, name: str, value: int, vmin: int, vmax: int, step: int = 1,
-                             exposable: bool = True) -> Tuple[QWidget, QSlider, QSpinBox]:
+                             exposable: bool = True) -> Tuple[QWidget, QSlider, NumericInput]:
         """Int slider with lazy-follow easing. Use only for scale properties."""
         row = QWidget()
         layout = QHBoxLayout(row)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        spin = QSpinBox()
-        spin.setRange(vmin, vmax)
-        spin.setSingleStep(step)
-        spin.setValue(int(value))
-        spin.setKeyboardTracking(False)
+        spin = NumericInput(int(value), vmin, vmax, step, decimals=0, is_int=True)
 
         slider = HandleOnlySlider(Qt.Horizontal)
         slider.setMinimum(int(vmin))
@@ -917,35 +1189,34 @@ class FieldBuilder:
             lagged_pos = drag_start_pos[0] + lagged_delta
             lagged_pos = max(vmin, min(vmax, int(round(lagged_pos))))
 
-            spin.blockSignals(True)
             spin.setValue(lagged_pos)
-            spin.blockSignals(False)
             pending_value[0] = lagged_pos
             # Debounce preview update - only trigger after slider stops moving for 300ms
             preview_timer.start(PREVIEW_DEBOUNCE_MS)
 
-        def on_spin_value_changed(i: int):
+        def on_spin_value_changed(v: float):
             # Safety check
             if self.inspector.current_node_item is not editing_node_item[0]:
                 return
+            i = int(v)
             # Sync slider (without triggering sliderMoved)
             slider.blockSignals(True)
             slider.setValue(i)
             slider.blockSignals(False)
-            pending_value[0] = int(i)
+            pending_value[0] = i
             # Live update current node
             self.inspector._on_live_change(name, i)
             # Debounce for arrows (valueChanged fires for arrows but not Enter)
             debounce_timer.start(SLIDER_DEBOUNCE_MS)
 
-        def on_spin_finished():
+        def on_spin_finished(v: float):
             # Safety check
             if self.inspector.current_node_item is not editing_node_item[0]:
                 return
             # Enter key or focus loss - commit immediately
             debounce_timer.stop()
-            i = int(spin.value())
-            pending_value[0] = int(i)
+            i = int(v)
+            pending_value[0] = i
             self.inspector._on_change(name, i, original_value[0])
             # Reset original to current for next edit
             original_value[0] = i
@@ -953,11 +1224,11 @@ class FieldBuilder:
         slider.sliderPressed.connect(on_slider_pressed)
         slider.sliderReleased.connect(on_slider_released)
         slider.sliderMoved.connect(on_slider_moved)  # Use sliderMoved instead of valueChanged
-        spin.valueChanged.connect(on_spin_value_changed)
-        spin.editingFinished.connect(on_spin_finished)
+        spin.connect_value_changed(on_spin_value_changed)
+        spin.connect_editing_finished(on_spin_finished)
 
         layout.addWidget(slider, stretch=3)
-        layout.addWidget(spin, stretch=1)
+        layout.addWidget(spin, stretch=0)
 
         # Wrap with expose button if exposable
         if exposable:

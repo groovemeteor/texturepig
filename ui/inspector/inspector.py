@@ -12,7 +12,8 @@ from texture_pig.ui.commands.undo_commands import SetNodeParamCommand
 DOWNSTREAM_UPDATE_DEBOUNCE_MS = 150
 
 # Backend node classes
-from texture_pig.nodes.core import Graph, Constant, Float, ScalarAdd, ScalarSub, ScalarMul, ScalarClamp
+from texture_pig.nodes.core import Graph, Constant, get_scalar_param
+from texture_pig.nodes.scalar import Float, Int, ScalarAdd, ScalarSub, ScalarMul, ScalarDiv, ScalarClamp
 from texture_pig.nodes.generators import (
     GradientRadial, GradientLinear, GradientReflected, GradientAngle,
     PerlinNoise, WorleyNoise
@@ -45,6 +46,27 @@ class Inspector(QWidget):
 
     # ---------- Public API ----------
 
+    def _get_effective_value(self, node, param_name: str, default):
+        """
+        Get the effective value of a parameter, checking for scalar connections first.
+        If the parameter is connected to a scalar input, returns the connected node's value.
+        Otherwise returns the stored attribute value.
+        """
+        return get_scalar_param(node, param_name, default)
+
+    def _is_param_connected(self, node, param_name: str) -> bool:
+        """Check if a parameter has a scalar connection."""
+        inputs = getattr(node, 'inputs', {})
+        connection = inputs.get(param_name)
+        if connection is not None:
+            if isinstance(connection, tuple):
+                upstream_node, _ = connection
+            else:
+                upstream_node = connection
+            if hasattr(upstream_node, 'get_scalar_value') and callable(upstream_node.get_scalar_value):
+                return True
+        return False
+
     def set_node(self, node_item: Optional['NodeItem']):
         # Stop any pending timers before clearing widgets
         self._downstream_timer.stop()
@@ -68,19 +90,19 @@ class Inspector(QWidget):
             fb.add_thin_separator()
             fb.add_float('scalar_value', float(getattr(n, 'scalar_value', 0.0)), -1000.0, 1000.0, 0.01, exposable=False)
 
-        elif isinstance(n, (ScalarAdd, ScalarSub, ScalarMul)):
+        elif isinstance(n, (ScalarAdd, ScalarSub, ScalarMul, ScalarDiv)):
             # Math nodes - show a/b parameters (can be overridden by scalar inputs)
-            fb.add_float('a', float(getattr(n, 'a', 0.0)), -1000.0, 1000.0, 0.01, exposable=False)
-            fb.add_float('b', float(getattr(n, 'b', 0.0)), -1000.0, 1000.0, 0.01, exposable=False)
+            fb.add_float_input('a', float(getattr(n, 'a', 0.0)), -1000.0, 1000.0, 0.01, exposable=False)
+            fb.add_float_input('b', float(getattr(n, 'b', 0.0)), -1000.0, 1000.0, 0.01, exposable=False)
 
         elif isinstance(n, ScalarClamp):
-            fb.add_float('value', float(getattr(n, 'value', 0.5)), -1000.0, 1000.0, 0.01, exposable=False)
-            fb.add_float('min_val', float(getattr(n, 'min_val', 0.0)), -1000.0, 1000.0, 0.01, exposable=False)
-            fb.add_float('max_val', float(getattr(n, 'max_val', 1.0)), -1000.0, 1000.0, 0.01, exposable=False)
+            fb.add_float_input('value', float(getattr(n, 'value', 0.5)), -1000.0, 1000.0, 0.01, exposable=False)
+            fb.add_float_input('min_val', float(getattr(n, 'min_val', 0.0)), -1000.0, 1000.0, 0.01, exposable=False)
+            fb.add_float_input('max_val', float(getattr(n, 'max_val', 1.0)), -1000.0, 1000.0, 0.01, exposable=False)
 
         elif isinstance(n, Float):
-            fb.add_float('min_value', float(getattr(n, 'min_value', 0.0)), -1000.0, 1000.0, 0.01, exposable=False)
-            fb.add_float('max_value', float(getattr(n, 'max_value', 1.0)), -1000.0, 1000.0, 0.01, exposable=False)
+            fb.add_float_input('min_value', float(getattr(n, 'min_value', 0.0)), -1000.0, 1000.0, 0.01, exposable=False)
+            fb.add_float_input('max_value', float(getattr(n, 'max_value', 1.0)), -1000.0, 1000.0, 0.01, exposable=False)
             fb.add_thin_separator()
             # Dynamic slider based on min/max (ensure valid range)
             min_v = float(getattr(n, 'min_value', 0.0))
@@ -91,6 +113,19 @@ class Inspector(QWidget):
                 max_v = min_v + 1.0  # Ensure non-zero range
             fb.add_float_with_slider('value', float(getattr(n, 'value', 0.5)),
                                      min_v, max_v, 0.001, slider_resolution=1000, exposable=False)
+
+        elif isinstance(n, Int):
+            fb.add_int_input('min_value', int(getattr(n, 'min_value', 0)), -2**31, 2**31 - 1, 1, exposable=False)
+            fb.add_int_input('max_value', int(getattr(n, 'max_value', 100)), -2**31, 2**31 - 1, 1, exposable=False)
+            fb.add_thin_separator()
+            # Dynamic slider based on min/max (ensure valid range)
+            min_v = int(getattr(n, 'min_value', 0))
+            max_v = int(getattr(n, 'max_value', 100))
+            if min_v > max_v:
+                min_v, max_v = max_v, min_v  # Swap to ensure valid range
+            if min_v == max_v:
+                max_v = min_v + 1  # Ensure non-zero range
+            fb.add_int_input('value', int(getattr(n, 'value', 0)), min_v, max_v, 1, exposable=False)
 
         elif isinstance(n, PerlinNoise):
             fb.add_int('seed', n.seed if n.seed is not None else 0, -2 ** 31, 2 ** 31 - 1, 1)
@@ -140,57 +175,74 @@ class Inspector(QWidget):
                 fb.add_gradient_editor('Gradient', 'color_stops', getattr(n, 'color_stops', None))
 
         elif isinstance(n, Circle):
-            fb.add_float_with_slider('cx', float(n.cx), 0.0, 1.0, 0.001, slider_resolution=1000)
-            fb.add_float_with_slider('cy', float(n.cy), 0.0, 1.0, 0.001, slider_resolution=1000)
-            fb.add_float_with_slider('radius', float(n.radius), 0.0, 1.0, 0.001, slider_resolution=1000)
+            fb.add_float_with_slider('cx', float(self._get_effective_value(n, 'cx', n.cx)), 0.0, 1.0, 0.001,
+                                     slider_resolution=1000, connected=self._is_param_connected(n, 'cx'))
+            fb.add_float_with_slider('cy', float(self._get_effective_value(n, 'cy', n.cy)), 0.0, 1.0, 0.001,
+                                     slider_resolution=1000, connected=self._is_param_connected(n, 'cy'))
+            fb.add_float_with_slider('radius', float(self._get_effective_value(n, 'radius', n.radius)), 0.0, 1.0, 0.001,
+                                     slider_resolution=1000, connected=self._is_param_connected(n, 'radius'))
 
-            fb.add_float_with_slider('edge_softness', float(getattr(n, 'edge_softness', 0.0)),
-                                     0.0, 0.5, 0.001, slider_resolution=1000)
+            fb.add_float_with_slider('edge_softness', float(self._get_effective_value(n, 'edge_softness', getattr(n, 'edge_softness', 0.0))),
+                                     0.0, 0.5, 0.001, slider_resolution=1000, connected=self._is_param_connected(n, 'edge_softness'))
 
             fb.add_thin_separator()
             fb.add_color_fields('color', n.color)
 
         elif isinstance(n, Rectangle):
-            fb.add_float_with_slider('cx', float(n.cx), 0.0, 1.0, 0.001, 1000)
-            fb.add_float_with_slider('cy', float(n.cy), 0.0, 1.0, 0.001, 1000)
-            fb.add_float_with_slider('width', float(n.width), 0.0, 1.0, 0.001, 1000)
-            fb.add_float_with_slider('height', float(n.height), 0.0, 1.0, 0.001, 1000)
+            fb.add_float_with_slider('cx', float(self._get_effective_value(n, 'cx', n.cx)), 0.0, 1.0, 0.001, 1000,
+                                     connected=self._is_param_connected(n, 'cx'))
+            fb.add_float_with_slider('cy', float(self._get_effective_value(n, 'cy', n.cy)), 0.0, 1.0, 0.001, 1000,
+                                     connected=self._is_param_connected(n, 'cy'))
+            fb.add_float_with_slider('width', float(self._get_effective_value(n, 'width', n.width)), 0.0, 1.0, 0.001, 1000,
+                                     connected=self._is_param_connected(n, 'width'))
+            fb.add_float_with_slider('height', float(self._get_effective_value(n, 'height', n.height)), 0.0, 1.0, 0.001, 1000,
+                                     connected=self._is_param_connected(n, 'height'))
 
-            fb.add_float_with_slider('rotation_deg', float(n.rotation_deg),
-                                     -360.0, 360.0, 1.0, slider_resolution=1440)
+            fb.add_float_with_slider('rotation_deg', float(self._get_effective_value(n, 'rotation_deg', n.rotation_deg)),
+                                     -360.0, 360.0, 1.0, slider_resolution=1440,
+                                     connected=self._is_param_connected(n, 'rotation_deg'))
 
             if hasattr(n, 'corner_radius'):
-                fb.add_float_with_slider('corner_radius', float(getattr(n, 'corner_radius', 0.0)),
-                                         0.0, 0.5, 0.001, slider_resolution=1000)
+                fb.add_float_with_slider('corner_radius', float(self._get_effective_value(n, 'corner_radius', getattr(n, 'corner_radius', 0.0))),
+                                         0.0, 0.5, 0.001, slider_resolution=1000,
+                                         connected=self._is_param_connected(n, 'corner_radius'))
 
-            fb.add_float_with_slider('edge_softness', float(getattr(n, 'edge_softness', 0.0)),
-                                     0.0, 0.5, 0.001, slider_resolution=1000)
+            fb.add_float_with_slider('edge_softness', float(self._get_effective_value(n, 'edge_softness', getattr(n, 'edge_softness', 0.0))),
+                                     0.0, 0.5, 0.001, slider_resolution=1000,
+                                     connected=self._is_param_connected(n, 'edge_softness'))
 
             fb.add_thin_separator()
             fb.add_color_fields('color', n.color)
 
         elif isinstance(n, Triangle):
-            fb.add_float_with_slider('cx', float(n.cx), 0.0, 1.0, 0.001, 1000)
-            fb.add_float_with_slider('cy', float(n.cy), 0.0, 1.0, 0.001, 1000)
+            fb.add_float_with_slider('cx', float(self._get_effective_value(n, 'cx', n.cx)), 0.0, 1.0, 0.001, 1000,
+                                     connected=self._is_param_connected(n, 'cx'))
+            fb.add_float_with_slider('cy', float(self._get_effective_value(n, 'cy', n.cy)), 0.0, 1.0, 0.001, 1000,
+                                     connected=self._is_param_connected(n, 'cy'))
 
-            fb.add_float_with_slider('base', float(n.base), 0.0, 1.0, 0.001, 1000)
+            fb.add_float_with_slider('base', float(self._get_effective_value(n, 'base', n.base)), 0.0, 1.0, 0.001, 1000,
+                                     connected=self._is_param_connected(n, 'base'))
 
             is_equi = bool(getattr(n, 'equilateral', True))
             equi_cb = fb.add_bool('equilateral', is_equi)
             equi_cb.setToolTip("When enabled, height = sqrt(3)/2 × base. Height control is disabled.")
 
             height_row, _, _ = fb.add_float_with_slider(
-                'height', float(n.height), 0.0, 1.0, 0.001, 1000
+                'height', float(self._get_effective_value(n, 'height', n.height)), 0.0, 1.0, 0.001, 1000,
+                connected=self._is_param_connected(n, 'height')
             )
             height_row.setEnabled(not is_equi)
 
-            fb.add_float_scale_slider('scale', float(getattr(n, 'scale', 1.0)), 0.0, 4.0, 0.01, 400)
+            fb.add_float_scale_slider('scale', float(self._get_effective_value(n, 'scale', getattr(n, 'scale', 1.0))), 0.0, 4.0, 0.01, 400,
+                                      connected=self._is_param_connected(n, 'scale'))
 
-            fb.add_float_with_slider('rotation_deg', float(n.rotation_deg),
-                                     -360.0, 360.0, 1.0, 1440)
+            fb.add_float_with_slider('rotation_deg', float(self._get_effective_value(n, 'rotation_deg', n.rotation_deg)),
+                                     -360.0, 360.0, 1.0, 1440,
+                                     connected=self._is_param_connected(n, 'rotation_deg'))
 
-            fb.add_float_with_slider('edge_softness', float(getattr(n, 'edge_softness', 0.0)),
-                                     0.0, 0.5, 0.001, 1000)
+            fb.add_float_with_slider('edge_softness', float(self._get_effective_value(n, 'edge_softness', getattr(n, 'edge_softness', 0.0))),
+                                     0.0, 0.5, 0.001, 1000,
+                                     connected=self._is_param_connected(n, 'edge_softness'))
 
             fb.add_thin_separator()
             fb.add_color_fields('color', n.color)
@@ -200,21 +252,30 @@ class Inspector(QWidget):
                 equi_cb.toggled.connect(lambda checked: self._on_change('equilateral', checked))
 
         elif isinstance(n, Line):
-            fb.add_float_with_slider('x0', float(n.x0), 0.0, 1.0, 0.001, 1000)
-            fb.add_float_with_slider('y0', float(n.y0), 0.0, 1.0, 0.001, 1000)
-            fb.add_float_with_slider('x1', float(n.x1), 0.0, 1.0, 0.001, 1000)
-            fb.add_float_with_slider('y1', float(n.y1), 0.0, 1.0, 0.001, 1000)
+            fb.add_float_with_slider('x0', float(self._get_effective_value(n, 'x0', n.x0)), 0.0, 1.0, 0.001, 1000,
+                                     connected=self._is_param_connected(n, 'x0'))
+            fb.add_float_with_slider('y0', float(self._get_effective_value(n, 'y0', n.y0)), 0.0, 1.0, 0.001, 1000,
+                                     connected=self._is_param_connected(n, 'y0'))
+            fb.add_float_with_slider('x1', float(self._get_effective_value(n, 'x1', n.x1)), 0.0, 1.0, 0.001, 1000,
+                                     connected=self._is_param_connected(n, 'x1'))
+            fb.add_float_with_slider('y1', float(self._get_effective_value(n, 'y1', n.y1)), 0.0, 1.0, 0.001, 1000,
+                                     connected=self._is_param_connected(n, 'y1'))
 
-            fb.add_float_with_slider('width', float(n.width), 0.0, 1.0, 0.001, 1000)
+            fb.add_float_with_slider('width', float(self._get_effective_value(n, 'width', n.width)), 0.0, 1.0, 0.001, 1000,
+                                     connected=self._is_param_connected(n, 'width'))
 
             fb.add_thin_separator()
             fb.add_color_fields('color', n.color)
 
         elif isinstance(n, Stripes):
-            fb.add_int_with_slider('count', int(getattr(n, 'count', 3)), 1, 32, 1)
-            fb.add_float_with_slider('thickness', float(getattr(n, 'thickness', 0.05)), 0.001, 0.5, 0.001, 1000)
-            fb.add_float_with_slider('rotation_deg', float(getattr(n, 'rotation_deg', 0.0)), -180.0, 180.0, 1.0, 720)
-            fb.add_float_with_slider('edge_softness', float(getattr(n, 'edge_softness', 0.0)), 0.0, 0.2, 0.001, 200)
+            fb.add_int_with_slider('count', int(self._get_effective_value(n, 'count', getattr(n, 'count', 3))), 1, 32, 1,
+                                   connected=self._is_param_connected(n, 'count'))
+            fb.add_float_with_slider('thickness', float(self._get_effective_value(n, 'thickness', getattr(n, 'thickness', 0.05))), 0.001, 0.5, 0.001, 1000,
+                                     connected=self._is_param_connected(n, 'thickness'))
+            fb.add_float_with_slider('rotation_deg', float(self._get_effective_value(n, 'rotation_deg', getattr(n, 'rotation_deg', 0.0))), -180.0, 180.0, 1.0, 720,
+                                     connected=self._is_param_connected(n, 'rotation_deg'))
+            fb.add_float_with_slider('edge_softness', float(self._get_effective_value(n, 'edge_softness', getattr(n, 'edge_softness', 0.0))), 0.0, 0.2, 0.001, 200,
+                                     connected=self._is_param_connected(n, 'edge_softness'))
             fb.add_bool('frame', bool(getattr(n, 'frame', False)))
 
             fb.add_thin_separator()
@@ -319,6 +380,11 @@ class Inspector(QWidget):
             fb.add_bool('render_at_tile_resolution', bool(getattr(n, 'render_at_tile_resolution', True)))
             fb.add_bool('eval_cell_square', bool(getattr(n, 'eval_cell_square', True)))
 
+            fb.add_thin_separator()
+            fb.add_bool('use_gradient', bool(getattr(n, 'use_gradient', False)))
+            fb.add_mode_dropdown('gradient_mode', getattr(n, 'gradient_mode', 'index'), ['index', 'column', 'row'])
+            fb.add_gradient_editor('Gradient', 'color_stops', getattr(n, 'color_stops', None))
+
         elif isinstance(n, RadialGrid):
             fb.add_int('count', int(getattr(n, 'count', 8)), 1, 256, 1)
             fb.add_float_with_slider('cx', float(getattr(n, 'cx', 0.5)), 0.0, 1.0, 0.001, 1000)
@@ -344,6 +410,10 @@ class Inspector(QWidget):
             fb.add_float_scale_slider('scale_y', float(sy_val if sy_val is not None else uni), 0.0, 8.0, 0.01, 800)
 
             fb.add_bool('render_at_tile_resolution', bool(getattr(n, 'render_at_tile_resolution', True)))
+
+            fb.add_thin_separator()
+            fb.add_bool('use_gradient', bool(getattr(n, 'use_gradient', False)))
+            fb.add_gradient_editor('Gradient', 'color_stops', getattr(n, 'color_stops', None))
 
         elif isinstance(n, Mirror):
             fb.add_mode_dropdown('axis', getattr(n, 'axis', 'x'), ['x', 'y'])

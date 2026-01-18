@@ -385,26 +385,45 @@ class WorleyNoise(Node):
 
         # Create 3x3 tiled copies of points for seamless wrapping
         # This ensures pixels near edges see points from the opposite side
-        offsets = [(-1, -1), (-1, 0), (-1, 1),
-                   (0, -1),  (0, 0),  (0, 1),
-                   (1, -1),  (1, 0),  (1, 1)]
-        tiled_pts = []
-        for ox, oy in offsets:
-            tiled_pts.append(pts + np.array([ox, oy], dtype=np.float32))
-        tiled_pts = np.vstack(tiled_pts)  # Shape: (points * 9, 2)
+        offsets = np.array([[-1, -1], [-1, 0], [-1, 1],
+                            [0, -1],  [0, 0],  [0, 1],
+                            [1, -1],  [1, 0],  [1, 1]], dtype=np.float32)
+        tiled_pts = (pts[None, :, :] + offsets[:, None, :]).reshape(-1, 2)  # (points * 9, 2)
 
+        # Create coordinate grids
         y, x = np.mgrid[0:size, 0:size].astype(np.float32)
-        x = x / size; y = y / size
-        img = np.zeros((size, size), dtype=np.float32)
-        for i in range(size):
-            xi = x[i]; yi = y[i]
-            dx = tiled_pts[:, 0][None, :] - xi[:, None]
-            dy = tiled_pts[:, 1][None, :] - yi[:, None]
+        x = x / size
+        y = y / size
+
+        # Vectorized computation in chunks to balance speed vs memory
+        # At chunk_size=64, memory usage is ~75MB for 2048px with 144 tiled points
+        chunk_size = 64
+        img = np.empty((size, size), dtype=np.float32)
+
+        # Pre-extract point coordinates for efficiency
+        pts_x = tiled_pts[:, 0]  # (num_points,)
+        pts_y = tiled_pts[:, 1]  # (num_points,)
+
+        for row_start in range(0, size, chunk_size):
+            row_end = min(row_start + chunk_size, size)
+
+            # Get coordinates for this chunk: (chunk_rows, size)
+            x_chunk = x[row_start:row_end]
+            y_chunk = y[row_start:row_end]
+
+            # Compute distances using broadcasting
+            # x_chunk[:, :, None] shape: (chunk_rows, size, 1)
+            # pts_x shape: (num_points,) -> broadcasts to (1, 1, num_points)
+            dx = x_chunk[:, :, None] - pts_x  # (chunk_rows, size, num_points)
+            dy = y_chunk[:, :, None] - pts_y  # (chunk_rows, size, num_points)
+
             if self.metric == 'manhattan':
                 d = np.abs(dx) + np.abs(dy)
             else:
-                d = np.sqrt(dx*dx + dy*dy)
-            img[i] = d.min(axis=1)
+                d = np.sqrt(dx * dx + dy * dy)
+
+            img[row_start:row_end] = d.min(axis=2)
+
         v = (img - img.min()) / (img.max() - img.min() + 1e-8)
         rgba = np.stack([v, v, v, np.ones_like(v)], axis=-1)
         return rgba.astype(np.float32)
