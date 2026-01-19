@@ -37,6 +37,11 @@ from texture_pig.nodes.scalar import (
     ScalarClamp,
 )
 
+from texture_pig.nodes.text import (
+    Text,
+    get_font_names,
+)
+
 __all__ = [
     # Protocols
     'TextureNode',
@@ -56,6 +61,9 @@ __all__ = [
     'ScalarMul',
     'ScalarDiv',
     'ScalarClamp',
+    # Text
+    'Text',
+    'get_font_names',
     # Utilities
     'ensure_rgba',
     'clamp01',

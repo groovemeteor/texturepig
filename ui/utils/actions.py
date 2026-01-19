@@ -90,6 +90,7 @@ def setup_editor_actions(editor: 'GraphEditor') -> EditorActions:
     # --- Menus ---
     file_menu = mb.addMenu("File")
     edit_menu = mb.addMenu("Edit")
+    view_menu = mb.addMenu("View")
 
     # --- Actions: Undo / Redo (manual, symmetric behavior) ---
 
@@ -174,9 +175,13 @@ def setup_editor_actions(editor: 'GraphEditor') -> EditorActions:
     act_new = file_menu.addAction("New Graph")
     act_new.triggered.connect(lambda: editor.new_graph())
 
-    act_save = file_menu.addAction("Save Graph…")
+    act_save = file_menu.addAction("Save")
     act_save.setShortcut(QKeySequence("Ctrl+S"))
     act_save.triggered.connect(editor.save_graph)
+
+    act_save_as = file_menu.addAction("Save As…")
+    act_save_as.setShortcut(QKeySequence("Ctrl+Shift+S"))
+    act_save_as.triggered.connect(editor.save_graph_as)
 
     act_load = file_menu.addAction("Load Graph…")
     act_load.setShortcut(QKeySequence("Ctrl+O"))
@@ -194,6 +199,12 @@ def setup_editor_actions(editor: 'GraphEditor') -> EditorActions:
     act_quit = file_menu.addAction("Quit")
     act_quit.setShortcut(QKeySequence("Ctrl+Q"))
     act_quit.triggered.connect(editor.close)
+
+    # --- View menu: dock visibility toggles ---
+    if hasattr(editor, 'large_preview') and editor.large_preview:
+        act_toggle_preview = editor.large_preview.toggleViewAction()
+        act_toggle_preview.setText("Output Preview")
+        view_menu.addAction(act_toggle_preview)
 
     # Publish to editor so existing code keeps working
     editor.edit_menu = edit_menu

@@ -1,6 +1,8 @@
 from __future__ import annotations
 from typing import Dict, Optional, List
 import inspect
+import os
+import sys
 
 from shiboken6 import isValid
 from PIL import Image
@@ -34,8 +36,9 @@ from texture_pig.nodes.shapes import Circle, Rectangle, Triangle, Line, Stripes,
 from texture_pig.nodes.blends import Blend, Lerp
 from texture_pig.nodes.outline import Outline
 from texture_pig.nodes.filters import GaussianBlur, Transform, Invert, Levels, Combine, Split
-from texture_pig.nodes.layout import Grid, RadialGrid, Mirror
+from texture_pig.nodes.layout import Grid, RadialGrid, Mirror, Atlas
 from texture_pig.nodes.image_source import ImageNode
+from texture_pig.nodes.text import Text
 from texture_pig.nodes.utils import resolve_qt_resource_or_fs, register_qt_resources, load_stylesheet_with_fallback
 from texture_pig.nodes.output import Output
 
@@ -82,7 +85,7 @@ NODE_REGISTRY = {
     'Stripes': Stripes, 'Blend': Blend, 'GaussianBlur': GaussianBlur, 'Transform': Transform,
     'Invert': Invert, 'Levels': Levels, 'Combine': Combine, 'Split': Split, 'Grid': Grid,
     'RadialGrid': RadialGrid, 'Mirror': Mirror, 'HexGrid': HexGrid, 'ImageNode': ImageNode,
-    'Outline': Outline, 'Lerp': Lerp
+    'Outline': Outline, 'Lerp': Lerp, 'Text': Text, 'Atlas': Atlas
 }
 
 class GraphEditor(QMainWindow):
@@ -91,6 +94,9 @@ class GraphEditor(QMainWindow):
         self.setWindowTitle('Texture Pig')
         self.resize(1800, 900)
 
+        # Set window icon for taskbar
+        self._set_window_icon()
+
         # Core Graph State
         self.graph = Graph(size=OUTPUT_SIZE)
         self.scene = GraphScene(self)
@@ -98,10 +104,12 @@ class GraphEditor(QMainWindow):
         self.setCentralWidget(self.view)
         self.preview_size = PREVIEW_SIZE
         self.undo_stack = QUndoStack(self)
-        self.actions = setup_editor_actions(self)
 
         # Export State
         self.last_export_path: Optional[str] = None
+        self.last_export_dir: Optional[str] = None  # Remember last export folder
+        self.last_save_dir: Optional[str] = None    # Remember last save folder
+        self.current_graph_path: Optional[str] = None  # Current graph file path (for Save)
         self.confirm_overwrite_on_reexport: bool = True
 
         # Threaded Preview Worker Pool
@@ -119,8 +127,23 @@ class GraphEditor(QMainWindow):
 
         # UI Initialization
         self._setup_docks()
+        self.actions = setup_editor_actions(self)  # After docks so View menu can reference them
         self.scene.selectionChanged.connect(self._on_selection)
         self._create_output_node()
+
+    def _set_window_icon(self):
+        """Set the window icon for taskbar and title bar."""
+        # Determine base path for resources
+        if getattr(sys, 'frozen', False):
+            # Running as PyInstaller bundle
+            base_path = sys._MEIPASS
+        else:
+            # Running from source
+            base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+        icon_path = os.path.join(base_path, 'ui', 'icons', 'app.ico')
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
 
     def _setup_docks(self):
         self._build_palette_dock()
@@ -323,7 +346,7 @@ class GraphEditor(QMainWindow):
 
         out_item = NodeItem(out_backend.name, out_backend, width=self._default_card_width())
         out_item.add_input('src')
-        out_item.add_output('out')
+        # Output node has no output port - it's a terminal node
         out_item._is_output_node = True
         
         # Assign this BEFORE adding to scene so update_previews_from can find it
@@ -620,11 +643,15 @@ class GraphEditor(QMainWindow):
             QMessageBox.information(self, 'Export', 'Connect a source to the Output node first.')
             return
 
-        fn, _ = QFileDialog.getSaveFileName(self, 'Export PNG', 'output.png', 'PNG Files (*.png)')
+        import os
+        # Use last export directory if available, otherwise default filename
+        default_path = os.path.join(self.last_export_dir, 'output.png') if self.last_export_dir else 'output.png'
+        fn, _ = QFileDialog.getSaveFileName(self, 'Export PNG', default_path, 'PNG Files (*.png)')
         if fn:
             try:
                 self.graph.export_png(self.output_backend, fn, size=self.graph.size)
                 self.last_export_path = fn
+                self.last_export_dir = os.path.dirname(fn)  # Remember the folder
                 self._update_reexport_enabled()
                 QMessageBox.information(self, 'Export', f'Saved {fn}')
             except Exception as e:
@@ -657,6 +684,7 @@ class GraphEditor(QMainWindow):
         fn, _ = QFileDialog.getOpenFileName(self, 'Load Graph', '', 'JSON Files (*.json)')
         if not fn: return
 
+        self._loading_file_path = fn  # Remember for _on_load_done
         self._load_pd = QProgressDialog("Loading...", "Cancel", 0, 0, self)
         self._load_pd.canceled.connect(self._cancel_load_worker)
 
@@ -736,12 +764,19 @@ class GraphEditor(QMainWindow):
             nitem = NodeItem(bnode.name, bnode, width=node_entry.get('width', self._default_card_width()))
 
             # Defer layout during batch add for performance
-            for in_name in node_entry.get('inputs', []):
+            # Migrate legacy 'src' input to 'in0' for Grid/RadialGrid
+            input_names = list(node_entry.get('inputs', []))
+            if isinstance(bnode, (Grid, RadialGrid)):
+                input_names = ['in0' if n == 'src' else n for n in input_names]
+            for in_name in input_names:
                 nitem.add_input(in_name, defer_layout=True)
 
             # Handle outputs - check for saved outputs or known multi-output types
+            # Output node is terminal - no output ports
             outputs = node_entry.get('outputs', None)
-            if outputs is None:
+            if isinstance(bnode, Output):
+                outputs = []  # Output node has no output ports
+            elif outputs is None:
                 if isinstance(bnode, Split):
                     outputs = ['r', 'g', 'b', 'a']
                 elif isinstance(bnode, (Float, Int, ScalarAdd, ScalarSub, ScalarMul, ScalarDiv, ScalarClamp)):
@@ -800,7 +835,11 @@ class GraphEditor(QMainWindow):
                 return
 
             src_port = src.ports_out.get(e.get('src_port', 'out'))
-            dst_port = dst.ports_in.get(e.get('dst_port')) or dst.ports_in.get(e.get('dst_port', '').lower())
+            # Migrate legacy 'src' input to 'in0' for Grid/RadialGrid
+            dst_port_name = e.get('dst_port', '')
+            if isinstance(dst.backend_node, (Grid, RadialGrid)) and dst_port_name == 'src':
+                dst_port_name = 'in0'
+            dst_port = dst.ports_in.get(dst_port_name) or dst.ports_in.get(dst_port_name.lower())
 
             if src_port and dst_port:
                 src_port_name = e.get('src_port', 'out')
@@ -828,6 +867,11 @@ class GraphEditor(QMainWindow):
                 self.large_preview.set_node_item(self.output_node_item)
                 # Force one render after load even if paused
                 self.large_preview.panel.render()
+                # Set current file path for Save command
+                import os
+                if hasattr(self, '_loading_file_path') and self._loading_file_path:
+                    self.current_graph_path = self._loading_file_path
+                    self.last_save_dir = os.path.dirname(self._loading_file_path)
                 self.statusBar().showMessage("Load complete.", 2000)
             except Exception as e:
                 import traceback
@@ -852,6 +896,7 @@ class GraphEditor(QMainWindow):
         self.inspector.set_node(None)
 
         self.last_export_path = None
+        self.current_graph_path = None  # Clear current file (new unsaved graph)
         self._update_reexport_enabled()
 
         if create_output:
@@ -863,8 +908,26 @@ class GraphEditor(QMainWindow):
 
     # ---------- Save/Load ----------
     def save_graph(self):
-        fn, _ = QFileDialog.getSaveFileName(self, 'Save Graph', 'graph.json', 'JSON Files (*.json)')
-        if not fn: return
+        """Save to current file if already saved, otherwise prompt for filename."""
+        if self.current_graph_path:
+            self._save_graph_to_file(self.current_graph_path)
+        else:
+            self.save_graph_as()
+
+    def save_graph_as(self):
+        """Always prompt for a new filename."""
+        import os
+        # Use last save directory if available, otherwise default filename
+        default_path = os.path.join(self.last_save_dir, 'graph.json') if self.last_save_dir else 'graph.json'
+        fn, _ = QFileDialog.getSaveFileName(self, 'Save Graph As', default_path, 'JSON Files (*.json)')
+        if not fn:
+            return
+        self.last_save_dir = os.path.dirname(fn)  # Remember the folder
+        self._save_graph_to_file(fn)
+
+    def _save_graph_to_file(self, fn: str):
+        """Internal: save graph to the specified file path."""
+        import os
 
         id_map = {}
         nodes_data = []
@@ -932,7 +995,9 @@ class GraphEditor(QMainWindow):
         try:
             with open(fn, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2)
-            QMessageBox.information(self, 'Save Graph', f'Saved {fn}')
+            self.current_graph_path = fn  # Remember the current file
+            self.last_save_dir = os.path.dirname(fn)
+            self.statusBar().showMessage(f'Saved: {fn}', 3000)
         except Exception as e:
             QMessageBox.warning(self, 'Save failed', str(e))
 

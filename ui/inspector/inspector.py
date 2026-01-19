@@ -24,6 +24,7 @@ from texture_pig.nodes.filters import GaussianBlur, Transform, Invert, Levels, C
 from texture_pig.nodes.layout import Grid, RadialGrid, Mirror, Atlas
 from texture_pig.nodes.image_source import ImageNode
 from texture_pig.nodes.outline import Outline
+from texture_pig.nodes.text import Text, get_font_names
 
 class Inspector(QWidget):
     """
@@ -188,6 +189,11 @@ class Inspector(QWidget):
             fb.add_thin_separator()
             fb.add_color_fields('color', n.color)
 
+            fb.add_thin_separator()
+            fb.add_bool('use_gradient', bool(getattr(n, 'use_gradient', False)))
+            fb.add_mode_dropdown('gradient_axis', getattr(n, 'gradient_axis', 'x'), ['x', 'y'])
+            fb.add_gradient_editor('Gradient', 'color_stops', getattr(n, 'color_stops', None))
+
         elif isinstance(n, Rectangle):
             fb.add_float_with_slider('cx', float(self._get_effective_value(n, 'cx', n.cx)), 0.0, 1.0, 0.001, 1000,
                                      connected=self._is_param_connected(n, 'cx'))
@@ -213,6 +219,11 @@ class Inspector(QWidget):
 
             fb.add_thin_separator()
             fb.add_color_fields('color', n.color)
+
+            fb.add_thin_separator()
+            fb.add_bool('use_gradient', bool(getattr(n, 'use_gradient', False)))
+            fb.add_mode_dropdown('gradient_axis', getattr(n, 'gradient_axis', 'x'), ['x', 'y'])
+            fb.add_gradient_editor('Gradient', 'color_stops', getattr(n, 'color_stops', None))
 
         elif isinstance(n, Triangle):
             fb.add_float_with_slider('cx', float(self._get_effective_value(n, 'cx', n.cx)), 0.0, 1.0, 0.001, 1000,
@@ -246,6 +257,11 @@ class Inspector(QWidget):
 
             fb.add_thin_separator()
             fb.add_color_fields('color', n.color)
+
+            fb.add_thin_separator()
+            fb.add_bool('use_gradient', bool(getattr(n, 'use_gradient', False)))
+            fb.add_mode_dropdown('gradient_axis', getattr(n, 'gradient_axis', 'x'), ['x', 'y'])
+            fb.add_gradient_editor('Gradient', 'color_stops', getattr(n, 'color_stops', None))
 
             if isinstance(equi_cb, QCheckBox):
                 equi_cb.toggled.connect(lambda checked: height_row.setEnabled(not checked))
@@ -359,6 +375,46 @@ class Inspector(QWidget):
             fb.add_int_with_slider('nx', int(getattr(n, 'nx', 2)), 1, 256, 1)
             fb.add_int_with_slider('ny', int(getattr(n, 'ny', 2)), 1, 256, 1)
 
+            # num_inputs control with slider - max is nx * ny
+            max_inputs = int(getattr(n, 'nx', 2)) * int(getattr(n, 'ny', 2))
+            current_num_inputs = min(int(getattr(n, 'num_inputs', 1)), max_inputs)
+
+            from texture_pig.ui.inspector.fields import NumericInput
+            from PySide6.QtWidgets import QSlider, QHBoxLayout, QWidget as QW
+            from PySide6.QtCore import Qt as QtCore
+
+            num_row = QW()
+            num_layout = QHBoxLayout(num_row)
+            num_layout.setContentsMargins(0, 0, 0, 0)
+            num_layout.setSpacing(8)
+
+            num_slider = QSlider(QtCore.Horizontal)
+            num_slider.setMinimum(1)
+            num_slider.setMaximum(max_inputs)
+            num_slider.setValue(current_num_inputs)
+
+            num_spin = NumericInput(current_num_inputs, 1, max_inputs, 1, decimals=0, is_int=True)
+
+            def on_grid_num_inputs_slider(value):
+                num_spin.setValue(int(value))
+                self._on_change('num_inputs', int(value))
+                self._rebuild_multi_input_ports(self.current_node_item, int(value))
+
+            def on_grid_num_inputs_spin(value):
+                num_slider.blockSignals(True)
+                num_slider.setValue(int(value))
+                num_slider.blockSignals(False)
+                self._on_change('num_inputs', int(value))
+                self._rebuild_multi_input_ports(self.current_node_item, int(value))
+
+            num_slider.valueChanged.connect(on_grid_num_inputs_slider)
+            num_spin.connect_value_changed(on_grid_num_inputs_spin)
+            num_spin.connect_editing_finished(on_grid_num_inputs_spin)
+
+            num_layout.addWidget(num_slider, stretch=3)
+            num_layout.addWidget(num_spin, stretch=0)
+            self.form.addRow('num_inputs', num_row)
+
             fb.add_float_with_slider('region_x', float(getattr(n, 'region_x', 0.0)), 0.0, 1.0, 0.001, 1000)
             fb.add_float_with_slider('region_y', float(getattr(n, 'region_y', 0.0)), 0.0, 1.0, 0.001, 1000)
             fb.add_float_with_slider('region_w', float(getattr(n, 'region_w', 1.0)), 0.0, 1.0, 0.001, 1000)
@@ -386,7 +442,48 @@ class Inspector(QWidget):
             fb.add_gradient_editor('Gradient', 'color_stops', getattr(n, 'color_stops', None))
 
         elif isinstance(n, RadialGrid):
-            fb.add_int('count', int(getattr(n, 'count', 8)), 1, 256, 1)
+            fb.add_int_with_slider('count', int(getattr(n, 'count', 8)), 1, 256, 1)
+
+            # num_inputs control with slider - max is count
+            max_inputs = int(getattr(n, 'count', 8))
+            current_num_inputs = min(int(getattr(n, 'num_inputs', 1)), max_inputs)
+
+            from texture_pig.ui.inspector.fields import NumericInput
+            from PySide6.QtWidgets import QSlider, QHBoxLayout, QWidget as QW
+            from PySide6.QtCore import Qt as QtCore
+
+            num_row = QW()
+            num_layout = QHBoxLayout(num_row)
+            num_layout.setContentsMargins(0, 0, 0, 0)
+            num_layout.setSpacing(8)
+
+            num_slider = QSlider(QtCore.Horizontal)
+            num_slider.setMinimum(1)
+            num_slider.setMaximum(max_inputs)
+            num_slider.setValue(current_num_inputs)
+
+            num_spin = NumericInput(current_num_inputs, 1, max_inputs, 1, decimals=0, is_int=True)
+
+            def on_radial_num_inputs_slider(value):
+                num_spin.setValue(int(value))
+                self._on_change('num_inputs', int(value))
+                self._rebuild_multi_input_ports(self.current_node_item, int(value))
+
+            def on_radial_num_inputs_spin(value):
+                num_slider.blockSignals(True)
+                num_slider.setValue(int(value))
+                num_slider.blockSignals(False)
+                self._on_change('num_inputs', int(value))
+                self._rebuild_multi_input_ports(self.current_node_item, int(value))
+
+            num_slider.valueChanged.connect(on_radial_num_inputs_slider)
+            num_spin.connect_value_changed(on_radial_num_inputs_spin)
+            num_spin.connect_editing_finished(on_radial_num_inputs_spin)
+
+            num_layout.addWidget(num_slider, stretch=3)
+            num_layout.addWidget(num_spin, stretch=0)
+            self.form.addRow('num_inputs', num_row)
+
             fb.add_float_with_slider('cx', float(getattr(n, 'cx', 0.5)), 0.0, 1.0, 0.001, 1000)
             fb.add_float_with_slider('cy', float(getattr(n, 'cy', 0.5)), 0.0, 1.0, 0.001, 1000)
             fb.add_float_with_slider('radius', float(getattr(n, 'radius', 0.35)), 0.0, 1.0, 0.001, 1000)
@@ -401,6 +498,7 @@ class Inspector(QWidget):
             fb.add_mode_dropdown('rotate_mode', getattr(n, 'rotate_mode', 'none'), ['none', 'radial', 'tangent'])
             fb.add_float_with_slider('item_rotation_deg', float(getattr(n, 'item_rotation_deg', 0.0)), -360.0, 360.0,
                                      1.0, 1440)
+            fb.add_mode_dropdown('pivot', getattr(n, 'pivot', 'center'), ['center', 'top', 'bottom'])
 
             fb.add_float_scale_slider('scale', float(getattr(n, 'scale', 1.0)), 0.0, 8.0, 0.01, 800)
             sx_val = getattr(n, 'scale_x', None)
@@ -533,6 +631,53 @@ class Inspector(QWidget):
             le.editingFinished.connect(apply_path_from_line)
             btn_browse.clicked.connect(browse)
             btn_reload.clicked.connect(reload)
+
+        elif isinstance(n, Text):
+            from PySide6.QtWidgets import QTextEdit, QComboBox
+
+            # Text input (multi-line)
+            text_edit = QTextEdit(self)
+            text_edit.setPlainText(str(getattr(n, 'text', 'Text')))
+            text_edit.setMaximumHeight(80)
+
+            def on_text_changed():
+                self._on_change('text', text_edit.toPlainText())
+
+            text_edit.textChanged.connect(on_text_changed)
+            self.form.addRow('text', text_edit)
+
+            # Font selection dropdown
+            font_cb = QComboBox(self)
+            available_fonts = get_font_names()
+            font_cb.addItems(available_fonts)
+            current_font = str(getattr(n, 'font_name', 'Arial'))
+            if current_font in available_fonts:
+                font_cb.setCurrentText(current_font)
+            elif available_fonts:
+                font_cb.setCurrentIndex(0)
+
+            def on_font_changed(font_name):
+                self._on_change('font_name', font_name)
+
+            font_cb.currentTextChanged.connect(on_font_changed)
+            self.form.addRow('font', font_cb)
+
+            # Font size
+            fb.add_float_with_slider('font_size', float(getattr(n, 'font_size', 0.1)), 0.01, 0.5, 0.001, 490)
+
+            # Alignment
+            fb.add_mode_dropdown('align', getattr(n, 'align', 'center'), ['left', 'center', 'right'])
+            fb.add_mode_dropdown('valign', getattr(n, 'valign', 'center'), ['top', 'center', 'bottom'])
+
+            # Line spacing
+            fb.add_float_with_slider('line_spacing', float(getattr(n, 'line_spacing', 1.0)), 0.5, 3.0, 0.1, 25)
+
+            # Padding
+            fb.add_float_with_slider('padding', float(getattr(n, 'padding', 0.05)), 0.0, 0.5, 0.01, 50)
+
+            # Color
+            fb.add_thin_separator()
+            fb.add_color_fields('color', getattr(n, 'color', (1.0, 1.0, 1.0, 1.0)))
 
         elif isinstance(n, Outline):
             fb.add_int_with_slider('thickness', int(getattr(n, 'thickness', 2)), 1, 64, 1)
@@ -726,6 +871,63 @@ class Inspector(QWidget):
 
         # Add new ports
         for i in range(new_cells):
+            node_item.add_input(f'in{i}', defer_layout=True)
+
+        # Re-establish connections where port names match
+        from texture_pig.ui.nodes.edge_item import EdgeItem
+        for port_name, (src_port, _) in old_connections.items():
+            if port_name in node_item.ports_in:
+                dst_port = node_item.ports_in[port_name]
+                # Re-create edge
+                new_edge = EdgeItem(src_port, dst_port)
+                self.editor.scene.edges.append(new_edge)
+                self.editor.scene.addItem(new_edge)
+                # Re-establish backend connection
+                if src_port and src_port.node_item:
+                    node_item.backend_node.connect(
+                        port_name,
+                        src_port.node_item.backend_node,
+                        src_port.name
+                    )
+
+        # Re-layout ports
+        node_item.layout_ports_and_resize()
+
+        # Update preview
+        node_item.update_preview(self.editor.graph)
+
+    def _rebuild_multi_input_ports(self, node_item, new_num_inputs: int):
+        """
+        Rebuild the input ports for Grid/RadialGrid nodes when num_inputs changes.
+        Preserves existing connections where possible.
+        """
+        if not node_item:
+            return
+
+        # Get current connections before removing ports
+        old_connections = {}
+        for port_name, port in list(node_item.ports_in.items()):
+            # Find edge connected to this port
+            for edge in self.editor.scene.edges:
+                if edge.dst is port:
+                    old_connections[port_name] = (edge.src, edge)
+                    break
+
+        # Remove all existing input ports and their edges
+        for port_name in list(node_item.ports_in.keys()):
+            port = node_item.ports_in[port_name]
+            # Remove edges connected to this port
+            for edge in list(self.editor.scene.edges):
+                if edge.dst is port:
+                    self.editor.scene.delete_edge(edge)
+            # Remove port from scene
+            if port.scene():
+                port.scene().removeItem(port)
+
+        node_item.ports_in.clear()
+
+        # Add new ports
+        for i in range(new_num_inputs):
             node_item.add_input(f'in{i}', defer_layout=True)
 
         # Re-establish connections where port names match
