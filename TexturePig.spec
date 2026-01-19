@@ -7,10 +7,11 @@ import os
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 # ---- Paths (adjust if your working directory differs) ----
-REPO_ROOT = os.path.abspath(os.path.dirname(__file__))
+# SPECPATH is a built-in PyInstaller variable containing the spec file's directory
+REPO_ROOT = SPECPATH
 
-# Entry script (your package has ui/__main__.py as an entrypoint)
-ENTRY_SCRIPT = os.path.join(REPO_ROOT, 'ui', '__main__.py')
+# Entry script - use launcher.py which has absolute imports for PyInstaller compatibility
+ENTRY_SCRIPT = os.path.join(REPO_ROOT, 'launcher.py')
 
 # ---- Data collection ----
 datas = []
@@ -22,6 +23,11 @@ datas = []
 # Alternatively, include specific folders relative to repo:
 datas += collect_data_files(os.path.join(REPO_ROOT, 'ui'))       # includes qss and resources.rcc
 datas += collect_data_files(os.path.join(REPO_ROOT, 'examples')) # JSON example(s)
+
+# Explicitly include icon files for window icon
+icons_dir = os.path.join(REPO_ROOT, 'ui', 'icons')
+if os.path.isdir(icons_dir):
+    datas.append((icons_dir, 'ui/icons'))
 
 # Ensure the compiled .rcc is included explicitly (robust)
 rcc_src = os.path.join(REPO_ROOT, 'ui', 'resources.rcc')
@@ -35,6 +41,7 @@ datas += collect_data_files('PIL')
 
 # ---- Hidden imports (ensure all Qt/numpy/PIL submodules discovered) ----
 hiddenimports = []
+hiddenimports += collect_submodules('texture_pig')  # Include the entire texture_pig package
 hiddenimports += collect_submodules('PySide6')
 hiddenimports += collect_submodules('numpy')
 hiddenimports += collect_submodules('PIL')
@@ -44,7 +51,7 @@ block_cipher = None
 
 a = Analysis(
     [ENTRY_SCRIPT],
-    pathex=[REPO_ROOT],
+    pathex=[REPO_ROOT, os.path.dirname(REPO_ROOT)],  # Include parent dir for texture_pig package
     binaries=[],
     datas=datas,
     hiddenimports=hiddenimports,
@@ -80,7 +87,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,       # Set a .ico here if you have one, e.g., os.path.join(REPO_ROOT, 'ui', 'icons', 'app.ico')
+    icon=os.path.join(REPO_ROOT, 'ui', 'icons', 'app.ico'),
 )
 
 coll = COLLECT(

@@ -4,23 +4,93 @@ import numpy as np
 import math
 import cv2
 from PIL import Image, ImageDraw
-from typing import Tuple
+from typing import Tuple, Optional, List
 from texture_pig.nodes.core import Node, get_scalar_param, get_scalar_param_int
+
+
+def _validate_color_stops(stops):
+    """
+    Validate and normalize color stops.
+    Returns sorted tuple of (position, (R, G, B, A)) tuples.
+    """
+    if stops is None:
+        return None
+    stops = list(stops)
+    if len(stops) < 2:
+        return ((0.0, (1.0, 1.0, 1.0, 1.0)), (1.0, (1.0, 1.0, 1.0, 1.0)))
+    # Sort by position
+    stops.sort(key=lambda s: s[0])
+    validated = []
+    for pos, color in stops:
+        pos = max(0.0, min(1.0, float(pos)))
+        # Ensure RGBA (add alpha if only RGB)
+        color = tuple(float(c) for c in color)
+        if len(color) == 3:
+            color = color + (1.0,)
+        validated.append((pos, color))
+    return tuple(validated)
+
+
+def _sample_gradient_array(coords: np.ndarray, color_stops) -> np.ndarray:
+    """
+    Sample RGBA colors from gradient for an array of t values in [0, 1].
+    Returns (H, W, 4) array with RGBA values.
+    """
+    if color_stops is None or len(color_stops) < 2:
+        return np.ones(coords.shape + (4,), dtype=np.float32)
+
+    t = np.clip(coords, 0.0, 1.0)
+    result = np.zeros(t.shape + (4,), dtype=np.float32)
+
+    # For each segment between color stops
+    for i in range(len(color_stops) - 1):
+        pos0, color0 = color_stops[i]
+        pos1, color1 = color_stops[i + 1]
+
+        # Create mask for this segment
+        if i == 0:
+            mask = t <= pos1
+        elif i == len(color_stops) - 2:
+            mask = t > pos0
+        else:
+            mask = (t > pos0) & (t <= pos1)
+
+        # Interpolate within segment
+        segment_len = max(pos1 - pos0, 1e-8)
+        local_t = np.clip((t - pos0) / segment_len, 0.0, 1.0)
+
+        for ch in range(4):
+            result[..., ch] = np.where(
+                mask,
+                (1.0 - local_t) * color0[ch] + local_t * color1[ch],
+                result[..., ch]
+            )
+
+    return result.astype(np.float32)
 
 class Circle:
     def __init__(self, cx=0.5, cy=0.5, radius=0.2, color=(1, 1, 1, 1),
-                 edge_softness=0.0, name='Circle'):
+                 edge_softness=0.0, use_gradient=False, gradient_axis='x',
+                 color_stops=None, name='Circle'):
         """
         cx, cy: center in normalized [0..1] coordinates
         radius: normalized (0..1 of min(image side))
         edge_softness: normalized feather width (0..1 of min(image side)); 0 = hard edge
         color: RGBA in [0..1]
+        use_gradient: if True, use gradient coloring instead of solid color
+        gradient_axis: 'x' for horizontal gradient, 'y' for vertical gradient
+        color_stops: list of (position, (R, G, B, A)) tuples for gradient
         """
         self.cx = float(cx)
         self.cy = float(cy)
         self.radius = float(radius)
         self.edge_softness = float(edge_softness)
         self.color = tuple(float(c) for c in color)
+        self.use_gradient = bool(use_gradient)
+        self.gradient_axis = str(gradient_axis).lower()
+        self.color_stops = _validate_color_stops(color_stops) if color_stops else (
+            (0.0, (1.0, 1.0, 1.0, 1.0)), (1.0, (0.0, 0.0, 0.0, 1.0))
+        )
         self.name = name
         self.inputs = {}
         self._dirty = True
@@ -30,6 +100,10 @@ class Circle:
     # --- plumbing consistent with your framework ---
     def set_params(self, **kwargs):
         for k, v in kwargs.items():
+            if k == 'gradient_axis':
+                v = str(v).lower()
+            if k == 'color_stops' and v is not None:
+                v = _validate_color_stops(v)
             setattr(self, k, v)
         self.invalidate()
 
@@ -84,17 +158,33 @@ class Circle:
         else:
             mask = (sdf <= 0.0).astype(np.float32)
 
-        r, g, b, a = [np.float32(c) for c in self.color]
         out = np.zeros((H, W, 4), dtype=np.float32)
-        out[..., 0] = r
-        out[..., 1] = g
-        out[..., 2] = b
-        out[..., 3] = a * mask
+
+        if self.use_gradient and self.color_stops:
+            # Use gradient coloring based on axis
+            if self.gradient_axis == 'y':
+                gradient_coords = Y  # vertical gradient
+            else:
+                gradient_coords = X  # horizontal gradient (default)
+
+            colors = _sample_gradient_array(gradient_coords, self.color_stops)
+            out[..., 0] = colors[..., 0]
+            out[..., 1] = colors[..., 1]
+            out[..., 2] = colors[..., 2]
+            out[..., 3] = colors[..., 3] * mask
+        else:
+            r, g, b, a = [np.float32(c) for c in self.color]
+            out[..., 0] = r
+            out[..., 1] = g
+            out[..., 2] = b
+            out[..., 3] = a * mask
+
         return out
 
 class Rectangle:
     def __init__(self, cx=0.5, cy=0.5, width=0.5, height=0.5, rotation_deg=0.0,
-                 color=(1, 1, 1, 1), edge_softness=0.0, corner_radius=0.0, name='Rect'):
+                 color=(1, 1, 1, 1), edge_softness=0.0, corner_radius=0.0,
+                 use_gradient=False, gradient_axis='x', color_stops=None, name='Rect'):
         """
         cx, cy           : center in normalized [0..1]
         width, height    : normalized fraction of the image dimension (0..1)
@@ -102,6 +192,9 @@ class Rectangle:
         color            : RGBA in [0..1]
         edge_softness    : feather width (normalized to min image side); 0 => hard edge
         corner_radius    : rounded corner radius (normalized to min image side); 0 => sharp corners
+        use_gradient     : if True, use gradient coloring instead of solid color
+        gradient_axis    : 'x' for horizontal gradient, 'y' for vertical gradient
+        color_stops      : list of (position, (R, G, B, A)) tuples for gradient
         """
         self.cx = float(cx)
         self.cy = float(cy)
@@ -111,6 +204,11 @@ class Rectangle:
         self.edge_softness = float(edge_softness)
         self.corner_radius = float(corner_radius)
         self.color = tuple(float(c) for c in color)
+        self.use_gradient = bool(use_gradient)
+        self.gradient_axis = str(gradient_axis).lower()
+        self.color_stops = _validate_color_stops(color_stops) if color_stops else (
+            (0.0, (1.0, 1.0, 1.0, 1.0)), (1.0, (0.0, 0.0, 0.0, 1.0))
+        )
         self.name = name
         self.inputs = {}
         self._dirty = True
@@ -120,6 +218,10 @@ class Rectangle:
     # --- plumbing consistent with your framework ---
     def set_params(self, **kwargs):
         for k, v in kwargs.items():
+            if k == 'gradient_axis':
+                v = str(v).lower()
+            if k == 'color_stops' and v is not None:
+                v = _validate_color_stops(v)
             setattr(self, k, v)
         self.invalidate()
 
@@ -204,12 +306,27 @@ class Rectangle:
         else:
             mask = (sdf <= 0.0).astype(np.float32)
 
-        r, g, b, a = [np.float32(c) for c in self.color]
         out = np.zeros((H, W, 4), dtype=np.float32)
-        out[..., 0] = r
-        out[..., 1] = g
-        out[..., 2] = b
-        out[..., 3] = a * mask
+
+        if self.use_gradient and self.color_stops:
+            # Use gradient coloring based on axis
+            if self.gradient_axis == 'y':
+                gradient_coords = Y  # vertical gradient
+            else:
+                gradient_coords = X  # horizontal gradient (default)
+
+            colors = _sample_gradient_array(gradient_coords, self.color_stops)
+            out[..., 0] = colors[..., 0]
+            out[..., 1] = colors[..., 1]
+            out[..., 2] = colors[..., 2]
+            out[..., 3] = colors[..., 3] * mask
+        else:
+            r, g, b, a = [np.float32(c) for c in self.color]
+            out[..., 0] = r
+            out[..., 1] = g
+            out[..., 2] = b
+            out[..., 3] = a * mask
+
         return out
 
 class Triangle:
@@ -221,6 +338,9 @@ class Triangle:
                  color=(1, 1, 1, 1),
                  edge_softness=0.0,
                  equilateral=True,
+                 use_gradient=False,
+                 gradient_axis='x',
+                 color_stops=None,
                  name='Triangle'):
         """
         Isosceles/Equilateral triangle pointing upwards, centered at (cx, cy).
@@ -234,6 +354,9 @@ class Triangle:
           - color        : RGBA in [0..1]
           - edge_softness: feather width normalized to min(H, W); 0 → hard edge
           - equilateral  : when True (default), height is computed from base for an equilateral triangle
+          - use_gradient : if True, use gradient coloring instead of solid color
+          - gradient_axis: 'x' for horizontal gradient, 'y' for vertical gradient
+          - color_stops  : list of (position, (R, G, B, A)) tuples for gradient
         """
         self.cx = float(cx)
         self.cy = float(cy)
@@ -244,6 +367,11 @@ class Triangle:
         self.edge_softness = float(edge_softness)
         self.equilateral = bool(equilateral)
         self.color = tuple(float(c) for c in color)
+        self.use_gradient = bool(use_gradient)
+        self.gradient_axis = str(gradient_axis).lower()
+        self.color_stops = _validate_color_stops(color_stops) if color_stops else (
+            (0.0, (1.0, 1.0, 1.0, 1.0)), (1.0, (0.0, 0.0, 0.0, 1.0))
+        )
         self.name = name
         self.inputs = {}
         self._dirty = True
@@ -253,6 +381,10 @@ class Triangle:
     # --- plumbing consistent with your framework ---
     def set_params(self, **kwargs):
         for k, v in kwargs.items():
+            if k == 'gradient_axis':
+                v = str(v).lower()
+            if k == 'color_stops' and v is not None:
+                v = _validate_color_stops(v)
             setattr(self, k, v)
         self.invalidate()
 
@@ -372,12 +504,27 @@ class Triangle:
         else:
             mask = (sdf <= 0.0).astype(np.float32)
 
-        r, g, b, a = [np.float32(c) for c in self.color]
         out = np.zeros((H, W, 4), dtype=np.float32)
-        out[..., 0] = r
-        out[..., 1] = g
-        out[..., 2] = b
-        out[..., 3] = a * mask
+
+        if self.use_gradient and self.color_stops:
+            # Use gradient coloring based on axis
+            if self.gradient_axis == 'y':
+                gradient_coords = Y  # vertical gradient
+            else:
+                gradient_coords = X  # horizontal gradient (default)
+
+            colors = _sample_gradient_array(gradient_coords, self.color_stops)
+            out[..., 0] = colors[..., 0]
+            out[..., 1] = colors[..., 1]
+            out[..., 2] = colors[..., 2]
+            out[..., 3] = colors[..., 3] * mask
+        else:
+            r, g, b, a = [np.float32(c) for c in self.color]
+            out[..., 0] = r
+            out[..., 1] = g
+            out[..., 2] = b
+            out[..., 3] = a * mask
+
         return out
 
 class Line(Node):

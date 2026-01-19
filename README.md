@@ -16,6 +16,7 @@ Texture Pig is a powerful, node-based procedural texture generation tool built w
     - **Filters**: Gaussian Blur, Levels, Inversion, and Channel Combining.
     - **Layouts**: Grid and Radial repeating patterns with optional gradient coloring.
     - **Scalar**: Float/Int values, arithmetic operations (Add, Sub, Mul, Div, Clamp).
+    - **Sources**: Image loading and Text rendering with system fonts.
 - **🔭 Dual Previews**: Real-time thumbnail previews on every node, plus a full-resolution "Output" dock with **progressive rendering**.
 - **📸 High-Res Export**: Render and save your final results directly to PNG.
 - **⚡ Optimized UX**: Lazy-follow sliders, debounced preview updates, and background rendering for smooth interaction.
@@ -45,6 +46,7 @@ Texture Pig is a powerful, node-based procedural texture generation tool built w
 | **Zoom Preview** | `Mouse Wheel` |
 | **Pan Preview** | `Left Click + Drag` |
 | **Context Menu** | `Right Click` |
+| **Toggle Output Preview** | `View` menu → `Output Preview` |
 
 ---
 
@@ -97,27 +99,68 @@ pyside6-rcc ui/resources.qrc -o ui/icons_rc.py
 pyside6-rcc ui/resources.qrc -binary -o ui/resources.rcc
 ```
 
-If `pyside6-rcc` fails to find the rcc executable, use the full path:
+If `pyside6-rcc` is not in your PATH, use the full path to the executable:
 ```cmd
-# For conda/miniconda installations:
-"C:\Users\<username>\AppData\Local\miniconda3\Lib\site-packages\PySide6\rcc.exe" ui/resources.qrc -o ui/icons_rc.py
+# Standard Python installation:
+python -c "import PySide6; print(PySide6.__file__)"  # Find PySide6 location
+# Then use: <PySide6_path>\rcc.exe ui/resources.qrc -o ui/icons_rc.py
+
+# Example for typical Windows installation:
+"C:\Users\<username>\AppData\Local\Programs\Python\Python311\Lib\site-packages\PySide6\rcc.exe" ui/resources.qrc -o ui/icons_rc.py
 ```
 
 ---
 
 ## Windows executable build (PyInstaller)
 
-To build a **Windows executable**, first compile the Qt resources as a Python module, then run PyInstaller using the provided spec file.
+### Quick Build (Recommended)
+
+Use the provided build script for a one-click build:
 
 ```cmd
-# 1) Compile Qt resources to Python module
-pyside6-rcc ui/resources.qrc -o ui/icons_rc.py
+build.bat
+```
 
-# 2) Clean build with spec
+This script automatically:
+1. Installs required dependencies (if missing)
+2. Compiles Qt resources
+3. Builds the executable with PyInstaller
+
+### Manual Build
+
+If you prefer to build manually:
+
+**1. Install build dependencies:**
+```cmd
+pip install -r requirements.txt
+```
+
+**2. Compile Qt resources:**
+```cmd
+pyside6-rcc ui/resources.qrc -o ui/icons_rc.py
+```
+
+**3. Run PyInstaller:**
+```cmd
 pyinstaller --clean TexturePig.spec
 ```
 
-The Python module approach (`icons_rc.py`) is recommended because PyInstaller automatically includes it. With the binary `.rcc` file, you would need to manually add it to the spec file's `datas` list.
+### Build Output
+
+The build produces two distributions in the `dist/` folder:
+
+| Output | Path | Size | Description |
+|--------|------|------|-------------|
+| **Single EXE** | `dist/TexturePig.exe` | ~254 MB | Self-contained executable. Extracts to temp folder on each run (slower startup). |
+| **Folder build** | `dist/TexturePig/` | ~933 MB | Pre-extracted distribution. Faster startup, but multiple files to distribute. |
+
+### Troubleshooting
+
+**"pyside6-rcc not found"**: Install PySide6 (`pip install PySide6`) or use the full path to rcc.exe as shown above.
+
+**"ModuleNotFoundError"**: Ensure all dependencies are installed: `pip install -r requirements.txt`
+
+**Build warnings about missing DLLs** (OCI.dll, LIBPQ.dll, etc.): These are optional database drivers and can be safely ignored.
 
 ---
 
@@ -156,12 +199,15 @@ The Python module approach (`icons_rc.py`) is recommended because PyInstaller au
 
 ### Layout
 - `Grid` — replicate a source into an `nx × ny` grid inside a region with padding; supports `scale > 1.0`, bilinear resampling, and high-quality tile evaluation.
+  - **Multi-input**: Supports multiple inputs (`num_inputs`) that cycle through grid cells. Unconnected inputs show as transparent.
   - **Gradient coloring**: Enable `use_gradient` to tint each tile based on its position. Configure `color_stops` as a list of `(position, (R, G, B, A))` tuples.
   - **Gradient mode** (`gradient_mode`): Controls how tiles sample the gradient:
     - `index` — tiles are colored sequentially from first to last (default)
     - `column` — tiles in the same column share the same color (left-to-right gradient)
     - `row` — tiles in the same row share the same color (top-to-bottom gradient)
 - `RadialGrid` — arrange instances around a circle/arc; count, center, radius, sweep, per-tile scale and rotation (`none|radial|tangent`).
+  - **Multi-input**: Supports multiple inputs (`num_inputs`) that cycle through positions around the arc. Unconnected inputs show as transparent.
+  - **Pivot**: Control the rotation pivot point for tiles (`center`, `top`, `bottom`). Affects how tiles rotate when using radial or tangent rotation modes.
   - **Gradient coloring**: Enable `use_gradient` to tint each tile based on its position around the arc. Configure `color_stops` as a list of `(position, (R, G, B, A))` tuples.
 - `Atlas` — pack multiple images into a single texture atlas. Parameters: `cells` (4, 9, 16, 25, 36, 49, or 64 — perfect squares for 2x2 up to 8x8 grids). Images are arranged left-to-right, top-to-bottom. Useful for sprite sheets and texture atlases.
 
@@ -175,6 +221,18 @@ Scalar nodes output single numeric values and can be connected to numeric input 
 - `ScalarMul` — multiplies two scalar inputs (`a * b`).
 - `ScalarDiv` — divides two scalar inputs (`a / b`), with safe division by zero handling.
 - `ScalarClamp` — clamps a value between min and max bounds. Inputs: `value`, `min_val`, `max_val`.
+
+### Sources
+- `Image` — loads an image file and converts it to RGBA. Supports PNG, JPG, and other common formats.
+- `Text` — renders text to a texture with configurable styling. Parameters:
+  - `text` — the text to render (supports multi-line with `\n`)
+  - `font_name` — system font name (auto-discovered from Windows/macOS/Linux font directories)
+  - `font_size` — font size as fraction of canvas height (0.0-1.0)
+  - `color` — RGBA text color in [0..1]
+  - `align` — horizontal alignment (`left`, `center`, `right`)
+  - `valign` — vertical alignment (`top`, `center`, `bottom`)
+  - `line_spacing` — multiplier for line spacing (1.0 = normal)
+  - `padding` — padding from edges as fraction of canvas (0.0-0.5)
 
 ---
 

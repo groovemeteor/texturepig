@@ -1,0 +1,11 @@
+# Texture Pig - Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core dependencies
+PySide6>=6.5.0
+numpy>=1.24.0
+opencv-python>=4.8.0
+Pillow>=10.0.0
+
+# Build dependencies (for creating Windows executable)
+pyinstaller>=6.0.0

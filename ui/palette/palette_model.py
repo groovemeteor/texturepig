@@ -37,6 +37,7 @@ def build_default_entries() -> List[PaletteEntry]:
     from texture_pig.nodes.image_source import ImageNode
     from texture_pig.nodes.layout import Grid, RadialGrid, Atlas
     from texture_pig.nodes.scalar import Float, Int, ScalarAdd, ScalarSub, ScalarMul, ScalarDiv, ScalarClamp
+    from texture_pig.nodes.text import Text
 
     entries: List[PaletteEntry] = []
 
@@ -85,12 +86,13 @@ def build_default_entries() -> List[PaletteEntry]:
     # Sources
     entries += [
         PaletteEntry('Image',            'Sources',    lambda: ImageNode(name='Image')),
+        PaletteEntry('Text',             'Sources',    lambda: Text(text='Text', font_size=0.15, name='Text')),
     ]
 
     # Layout
     entries += [
-        PaletteEntry('Grid',             'Layout',     lambda: Grid(nx=2, ny=2, scale=1.0, name='Grid'), inputs=['src']),
-        PaletteEntry('RadialGrid',       'Layout',     lambda: RadialGrid(count=8, cx=0.5, cy=0.5, radius=0.35, tile_edge_frac=0.15, rotate_mode='none', name='RadialGrid'), inputs=['src']),
+        PaletteEntry('Grid',             'Layout',     lambda: Grid(nx=2, ny=2, num_inputs=1, scale=1.0, name='Grid'), inputs=['in0']),
+        PaletteEntry('RadialGrid',       'Layout',     lambda: RadialGrid(count=8, num_inputs=1, cx=0.5, cy=0.5, radius=0.35, tile_edge_frac=0.15, rotate_mode='none', name='RadialGrid'), inputs=['in0']),
         PaletteEntry('Atlas',            'Layout',     lambda: Atlas(cells=4, name='Atlas'), inputs=['in0', 'in1', 'in2', 'in3']),
     ]
 
