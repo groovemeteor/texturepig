@@ -22,5 +22,11 @@
     <file>icons/perlin_128.png</file>
     <file>icons/worley_128.png</file>
 
+    <!-- Scalar math -->
+    <file>icons/scalar_add_32.png</file>
+    <file>icons/scalar_sub_32.png</file>
+    <file>icons/scalar_mul_32.png</file>
+    <file>icons/scalar_div_32.png</file>
+
   </qresource>
 </RCC>
