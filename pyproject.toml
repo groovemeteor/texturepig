@@ -5,16 +5,19 @@ description = "Node-based procedural image creation with a Qt editor"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Robin Grotenfelt" }]
-license = { file = "LICENSE" }
 dependencies = [
     "numpy>=1.24",
     "pillow>=10.0",
+    "opencv-python>=4.8",
     "PySide6>=6.6",
 ]
 
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
 [project.urls]
-Homepage = "https://github.com/<your-user-or-org>/texture_pig"
-Issues = "https://github.com/<your-user-or-org>/texture_pig/issues"
+Homepage = "https://gitlab.siilicloud.com/Robin.Grotenfelt/texture_pig"
+Issues = "https://gitlab.siilicloud.com/Robin.Grotenfelt/texture_pig/-/issues"
 
 [project.scripts]
 texture-pig-editor = "texture_pig.ui.qt_editor:run"
@@ -29,4 +32,24 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 include-package-data = true
+# The package root (texture_pig) *is* this repository directory -- there's no
+# separate src/texture_pig subfolder -- so auto-discovery can't tell "nodes",
+# "ui", etc. apart from unrelated top-level packages. Map them explicitly.
+package-dir = { "texture_pig" = "." }
+packages = [
+    "texture_pig",
+    "texture_pig.nodes",
+    "texture_pig.nodes.scalar",
+    "texture_pig.ui",
+    "texture_pig.ui.commands",
+    "texture_pig.ui.inspector",
+    "texture_pig.ui.nodes",
+    "texture_pig.ui.palette",
+    "texture_pig.ui.preview",
+    "texture_pig.ui.scene",
+    "texture_pig.ui.utils",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 

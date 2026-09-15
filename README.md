@@ -83,6 +83,22 @@ python -m texture_pig.ui.__main__
 
 The main window opens with an empty graph. Use the **Palette** dock (left) to add nodes, or press **Space** in the canvas to open the **Quick Add** dialog.
 
+### Logs
+
+The app logs to a rotating file instead of stdout (the packaged .exe has no console window, so `print()` output would otherwise be lost):
+- Windows: `%APPDATA%\TexturePig\texture_pig.log`
+- macOS: `~/Library/Logs/TexturePig/texture_pig.log`
+- Linux: `~/.local/share/texture_pig/logs/texture_pig.log`
+
+Check this file first when reporting a bug.
+
+### Running the tests
+
+```bash
+pip install -e ".[dev]"
+pytest
+```
+
 ---
 
 ## 🔧 Compiling Qt Resources
