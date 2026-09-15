@@ -18,9 +18,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
 
-[project.urls]
-Homepage = "https://gitlab.siilicloud.com/Robin.Grotenfelt/texture_pig"
-Issues = "https://gitlab.siilicloud.com/Robin.Grotenfelt/texture_pig/-/issues"
+# No public repo URL yet -- this is a personal spare-time project, not tied to
+# any employer. Add a [project.urls] section back once it has a new home
+# (GitHub/GitLab/etc.).
 
 [project.scripts]
 texture-pig-editor = "texture_pig.ui.qt_editor:run"
