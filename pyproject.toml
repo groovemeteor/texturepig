@@ -8,7 +8,10 @@ authors = [{ name = "Robin Grotenfelt" }]
 dependencies = [
     "numpy>=1.24",
     "pillow>=10.0",
-    "opencv-python>=4.8",
+    # headless: only cv2 array ops are used (resize, etc.), never cv2.imshow/
+    # highgui -- the regular wheel bundles its own Qt, which only duplicates
+    # PySide6's and bloats the packaged app.
+    "opencv-python-headless>=4.8",
     "PySide6>=6.6",
 ]
 

@@ -4,7 +4,10 @@
 # Core dependencies
 PySide6>=6.5.0
 numpy>=1.24.0
-opencv-python>=4.8.0
+# headless: we only use cv2 array ops (resize, etc.), never cv2.imshow/highgui,
+# so we don't need OpenCV's own bundled Qt -- it only duplicates PySide6's and
+# bloats the packaged app.
+opencv-python-headless>=4.8.0
 Pillow>=10.0.0
 
 # Build dependencies (for creating Windows executable)

@@ -127,7 +127,7 @@ python -c "import PySide6; print(PySide6.__file__)"  # Find PySide6 location
 
 ---
 
-## Windows executable build (PyInstaller)
+## Windows executable build (PyInstaller + Inno Setup)
 
 ### Quick Build (Recommended)
 
@@ -140,7 +140,9 @@ build.bat
 This script automatically:
 1. Installs required dependencies (if missing)
 2. Compiles Qt resources
-3. Builds the executable with PyInstaller
+3. Builds the app with PyInstaller (one-folder / "onedir")
+4. Packages it into a Windows installer with Inno Setup (if installed --
+   get it from https://jrsoftware.org/isinfo.php or `winget install JRSoftware.InnoSetup`)
 
 ### Manual Build
 
@@ -154,6 +156,7 @@ pip install -r requirements.txt
 **2. Compile Qt resources:**
 ```cmd
 pyside6-rcc ui/resources.qrc -o ui/icons_rc.py
+pyside6-rcc ui/resources.qrc -binary -o ui/resources.rcc
 ```
 
 **3. Run PyInstaller:**
@@ -161,14 +164,23 @@ pyside6-rcc ui/resources.qrc -o ui/icons_rc.py
 pyinstaller --clean TexturePig.spec
 ```
 
-### Build Output
+**4. Build the installer (optional):**
+```cmd
+ISCC installer.iss
+```
 
-The build produces two distributions in the `dist/` folder:
+### Build Output
 
 | Output | Path | Size | Description |
 |--------|------|------|-------------|
-| **Single EXE** | `dist/TexturePig.exe` | ~254 MB | Self-contained executable. Extracts to temp folder on each run (slower startup). |
-| **Folder build** | `dist/TexturePig/` | ~933 MB | Pre-extracted distribution. Faster startup, but multiple files to distribute. |
+| **App folder** | `dist/TexturePig/` | ~213 MB on disk | The app itself (onedir). Run `TexturePig.exe` from here directly, or zip the folder to share it. |
+| **Installer** | `installer_output/TexturePigSetup-*.exe` | ~57 MB download | What you actually hand to users: a normal installer wizard, Start Menu shortcut, optional desktop icon, and a proper uninstaller in "Apps & Features". |
+
+The build is intentionally **onedir, not onefile**: a onefile exe re-extracts its entire payload to a temp directory on every launch, which for a Qt + NumPy + OpenCV app measurably dominates startup time. Onedir has nothing to unpack at runtime -- in local testing, the app is fully initialized (interpreter + Qt + logging) well under half a second after launch.
+
+TexturePig.spec also explicitly excludes several large Qt subsystems the app never uses (WebEngine/Chromium, QML/Quick, 3D, multimedia codecs, SQL drivers, networking, translations) that PyInstaller's default PySide6 hook otherwise bundles wholesale -- unfiltered, the onedir build was 789 MB; filtered, it's 213 MB. If you add a feature that needs one of those Qt modules back, remove the matching pattern from `_UNUSED_QT_PATTERNS` in `TexturePig.spec`.
+
+**Note on unsigned installers:** `TexturePigSetup-*.exe` isn't code-signed, so Windows SmartScreen may warn first-time users ("Windows protected your PC" -> More info -> Run anyway), and some locked-down machines (Application Control / WDAC policies) may block it outright. Code signing requires purchasing a certificate and is out of scope here, but is the standard fix if this becomes a problem for your users.
 
 ### Troubleshooting
 
@@ -176,7 +188,9 @@ The build produces two distributions in the `dist/` folder:
 
 **"ModuleNotFoundError"**: Ensure all dependencies are installed: `pip install -r requirements.txt`
 
-**Build warnings about missing DLLs** (OCI.dll, LIBPQ.dll, etc.): These are optional database drivers and can be safely ignored.
+**Build warnings about missing DLLs** (OCI.dll, LIBPQ.dll, etc.): These are optional database drivers for a Qt SQL plugin the app doesn't use, and get filtered out of the final build regardless -- safe to ignore.
+
+**"ISCC not found" / installer step skipped**: Install Inno Setup 6 and make sure `ISCC.exe` is on PATH, or edit the `ISCC` path resolution at the top of `build.bat`.
 
 ---
 
