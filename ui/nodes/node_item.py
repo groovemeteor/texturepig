@@ -1,9 +1,12 @@
 from __future__ import annotations
+import logging
 from typing import Dict, Optional
 
 import numpy as np
 import cv2
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 from PySide6.QtCore import Qt, QPointF
 from PySide6.QtGui import QColor, QBrush, QPen, QPainter, QPixmap
@@ -254,10 +257,9 @@ class NodeItem(QGraphicsRectItem):
             pw = max(1, qpix.width())
             ph = max(1, qpix.height())
             self.preview_item.setScale(min(ps / float(pw), ps / float(ph)))
-        except Exception as e:
-            import traceback
-            print(f"[Preview Error] node={getattr(self.backend_node, 'name', type(self.backend_node).__name__)}: {e}")
-            traceback.print_exc()
+        except Exception:
+            logger.exception("Preview render failed for node=%s",
+                              getattr(self.backend_node, 'name', type(self.backend_node).__name__))
             pm = QPixmap(ps, ps)
             pm.fill(QColor('#552222'))
             self.preview_item.setPixmap(pm)
@@ -298,8 +300,8 @@ class NodeItem(QGraphicsRectItem):
             pw = max(1, qpix.width())
             ph = max(1, qpix.height())
             self.preview_item.setScale(min(ps / float(pw), ps / float(ph)))
-        except Exception as e:
-            print(f"[Preview Error] _update_preview_from_array: {e}")
+        except Exception:
+            logger.exception("_update_preview_from_array failed")
             pm = QPixmap(ps, ps)
             pm.fill(QColor('#552222'))
             self.preview_item.setPixmap(pm)
@@ -342,8 +344,8 @@ class NodeItem(QGraphicsRectItem):
                 base_a = base.split()[3]
                 base_a.paste(alpha, (px, py))
                 base.putalpha(base_a)
-            except Exception as e:
-                print(f"[NodeItem] BG mask failed: {e}")
+            except Exception:
+                logger.exception("BG mask failed")
 
         # Convert back to QPixmap for the painter
         self._bg_pixmap = _pil_to_qpixmap(base)
@@ -370,6 +372,15 @@ class NodeItem(QGraphicsRectItem):
         painter.drawRect(rect)
 
     def contextMenuEvent(self, event):
+        # Right-clicking a node that isn't part of the current selection should act
+        # on this node alone, not on whatever was previously selected (Duplicate/
+        # Delete below operate on the scene's selected nodes).
+        if not self.isSelected():
+            scene = self.scene()
+            if scene is not None:
+                scene.clearSelection()
+            self.setSelected(True)
+
         menu = QMenu()
         if not getattr(self, '_is_output_node', False):
             act_set_out = menu.addAction("Set as Output")
@@ -458,8 +469,8 @@ class NodeItem(QGraphicsRectItem):
                         editor = self.scene().editor
                         cmd = MoveNodeCommand(editor, self, start, end)
                         editor.undo_stack.push(cmd)
-                    except Exception as e:
-                        print("[Move Undo] push failed:", e)
+                    except Exception:
+                        logger.exception("Move undo push failed")
                 self._move_start = None
 
         super().mouseReleaseEvent(event)
