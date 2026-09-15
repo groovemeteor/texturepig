@@ -18,9 +18,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
 
-# No public repo URL yet -- this is a personal spare-time project, not tied to
-# any employer. Add a [project.urls] section back once it has a new home
-# (GitHub/GitLab/etc.).
+[project.urls]
+Homepage = "https://github.com/groovemeteor/texture_pig"
+Issues = "https://github.com/groovemeteor/texture_pig/issues"
 
 [project.scripts]
 texture-pig-editor = "texture_pig.ui.qt_editor:run"

@@ -1,6 +1,8 @@
 
 # 🐷 Texture Pig
 
+[![test](https://github.com/groovemeteor/texture_pig/actions/workflows/test.yml/badge.svg)](https://github.com/groovemeteor/texture_pig/actions/workflows/test.yml)
+
 Texture Pig is a powerful, node-based procedural texture generation tool built with Python and PySide6. It allows technical artists and developers to create textures for various effects in game engines in a flexible graph-based workflow.
 
 ---

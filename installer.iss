@@ -19,9 +19,7 @@
 #define MyAppVersion "0.1.0"
 #define MyAppPublisher "Robin Grotenfelt"
 #define MyAppExeName "TexturePig.exe"
-; No public repo URL yet -- personal spare-time project, not tied to any
-; employer. Fill this in once it has a new home (GitHub/GitLab/etc.).
-#define MyAppURL ""
+#define MyAppURL "https://github.com/groovemeteor/texture_pig"
 #define MyBuildDir "dist\TexturePig"
 
 [Setup]
