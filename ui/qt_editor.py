@@ -1,8 +1,11 @@
 from __future__ import annotations
 from typing import Dict, Optional, List
 import inspect
+import logging
 import os
 import sys
+
+logger = logging.getLogger(__name__)
 
 from shiboken6 import isValid
 from PIL import Image
@@ -64,7 +67,7 @@ from texture_pig.ui.commands.undo_commands import DeleteNodeCommand, DeleteNodes
 
 try:
     from texture_pig.ui import icons_rc
-    print("[Resources] icons_rc imported.")
+    logger.debug("icons_rc imported.")
 except Exception:
     pass  # Fallback to filesystem icons via resolve_qt_resource_or_fs()
 
@@ -370,8 +373,8 @@ class GraphEditor(QMainWindow):
             # Refresh inspector to update size-dependent displays (e.g., HexGrid tileable dimensions)
             if self.inspector.current_node_item:
                 self.inspector.set_node(self.inspector.current_node_item)
-        except Exception as e:
-            print('Failed to set graph size:', e)
+        except Exception:
+            logger.exception("Failed to set graph size")
 
     def _on_preview_size_combo_changed(self, _):
         self.preview_size = int(self.preview_size_combo.currentData())
@@ -575,8 +578,8 @@ class GraphEditor(QMainWindow):
         for n in downstream:
             try:
                 n.update_preview(self.graph)
-            except Exception as e:
-                print(f"[Preview Error] {getattr(n.backend_node, 'name', '?')}: {e}")
+            except Exception:
+                logger.exception("Preview update failed for %s", getattr(n.backend_node, 'name', '?'))
         self.scene._refresh_edge_paths()
 
         if hasattr(self, 'large_preview'):
@@ -605,13 +608,13 @@ class GraphEditor(QMainWindow):
                 try:
                     m(arg)
                     return
-                except Exception as e:
-                    print(f'Graph.{method_name} failed:', e)
+                except Exception:
+                    logger.exception("Graph.%s failed", method_name)
         try:
             if hasattr(self.graph, 'nodes') and backend_node in self.graph.nodes:
                 self.graph.nodes.remove(backend_node)
-        except Exception as e:
-            print('Graph internal removal failed:', e)
+        except Exception:
+            logger.exception("Graph internal removal failed")
 
     def delete_selected_nodes(self):
         items = [it for it in self.scene.selectedItems() 
@@ -622,8 +625,8 @@ class GraphEditor(QMainWindow):
         cmd = DeleteNodesCommand(self, items) if len(items) > 1 else DeleteNodeCommand(self, items[0])
         try:
             self.undo_stack.push(cmd)
-        except Exception as e:
-            print(f"[Delete] undo push failed: {e}")
+        except Exception:
+            logger.exception("Delete undo push failed")
             for it in items:
                 self.scene.delete_node_item(it)
 
@@ -739,7 +742,7 @@ class GraphEditor(QMainWindow):
             cls_name = node_entry.get('class')
             cls = NODE_REGISTRY.get(cls_name)
             if not cls:
-                print(f"[LOAD] Unknown node class: {cls_name}", flush=True)
+                logger.warning("Unknown node class during load: %s", cls_name)
                 return
 
             params = normalize_params(node_entry.get('params', {}))
@@ -755,8 +758,8 @@ class GraphEditor(QMainWindow):
                 )
                 if not accepts_kwargs:
                     params = {k: v for k, v in params.items() if k in valid_params}
-            except (ValueError, TypeError) as e:
-                print(f"[LOAD] Could not inspect {cls_name}: {e}", flush=True)
+            except (ValueError, TypeError):
+                logger.exception("Could not inspect %s", cls_name)
 
             inst = cls(name=node_entry.get('name'), **params)
             bnode = self.graph.add(inst)
@@ -822,10 +825,8 @@ class GraphEditor(QMainWindow):
 
             self._load_nodes_done += 1
             self._update_status_load_counters()
-        except Exception as e:
-            import traceback
-            print(f"[LOAD] Node load error for {node_entry.get('class', '?')}: {e}", flush=True)
-            traceback.print_exc()
+        except Exception:
+            logger.exception("Node load error for %s", node_entry.get('class', '?'))
 
     def _on_load_edge_ready(self, e):
         try:
@@ -849,8 +850,8 @@ class GraphEditor(QMainWindow):
                 self.scene.addItem(edge)
                 self._load_edges_done += 1
                 self._update_status_load_counters()
-        except Exception as ex:
-            print(f"Edge load error: {ex}")
+        except Exception:
+            logger.exception("Edge load error")
 
     def _on_load_done(self, ok, msg):
         self._load_pd.reset()
@@ -861,8 +862,8 @@ class GraphEditor(QMainWindow):
                     if getattr(n, 'preview_enabled', True):
                         try:
                             n.update_preview(self.graph)
-                        except Exception as e:
-                            print(f"[LOAD] Preview update error for {getattr(n, 'label', '?')}: {e}")
+                        except Exception:
+                            logger.exception("Preview update error for %s", getattr(n, 'label', '?'))
                 self.scene._refresh_edge_paths()
                 self.large_preview.set_node_item(self.output_node_item)
                 # Force one render after load even if paused
@@ -873,10 +874,8 @@ class GraphEditor(QMainWindow):
                     self.current_graph_path = self._loading_file_path
                     self.last_save_dir = os.path.dirname(self._loading_file_path)
                 self.statusBar().showMessage("Load complete.", 2000)
-            except Exception as e:
-                import traceback
-                print(f"[LOAD] Finalization error: {e}")
-                traceback.print_exc()
+            except Exception:
+                logger.exception("Load finalization error")
         elif msg:
             QMessageBox.warning(self, "Load failed", msg)
 
@@ -1049,6 +1048,9 @@ def clone_backend_node(orig):
 def run():
     import sys
     from PySide6.QtWidgets import QApplication
+    from texture_pig.logging_setup import setup_logging
+    setup_logging()
+
     app = QApplication(sys.argv)
 
     register_qt_resources()

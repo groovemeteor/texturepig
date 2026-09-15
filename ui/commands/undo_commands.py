@@ -1,17 +1,18 @@
 # ui/commands/undo_commands.py
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import List, Tuple, Optional
 from shiboken6 import isValid
 from PySide6.QtGui import QUndoCommand
 from PySide6.QtCore import QPointF
 
-import traceback
-
 from texture_pig.ui.nodes.edge_item import EdgeItem
 from texture_pig.ui.nodes.port_item import PortItem
 from texture_pig.ui.utils.editor_helpers import normalize_params
+
+logger = logging.getLogger(__name__)
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -109,8 +110,8 @@ class DeleteNodeCommand(QUndoCommand):
             if target is self._restored_item:
                 # Clear pointer so next Undo rebuilds from snapshot again
                 self._restored_item = None
-        except Exception as e:
-            print(f"[DeleteNodeCommand] redo failed: {e}\n{traceback.format_exc()}")
+        except Exception:
+            logger.exception("[DeleteNodeCommand] redo failed")
 
     def undo(self):
         nitem = None  # guard to avoid UnboundLocalError
@@ -129,14 +130,14 @@ class DeleteNodeCommand(QUndoCommand):
                     inst.name = name
                 except Exception:
                     pass
-        except Exception as e:
-            print(f"[DeleteNodeCommand] undo instantiate failed: {e}\n{traceback.format_exc()}")
+        except Exception:
+            logger.exception("[DeleteNodeCommand] undo instantiate failed")
             return
 
         try:
             bnode = self.editor.graph.add(inst)
-        except Exception as e:
-            print(f"[DeleteNodeCommand] undo graph add failed: {e}\n{traceback.format_exc()}")
+        except Exception:
+            logger.exception("[DeleteNodeCommand] undo graph add failed")
             return
 
         # Build UI item + add to scene
@@ -157,8 +158,8 @@ class DeleteNodeCommand(QUndoCommand):
 
             self.editor.scene.add_node_item(nitem, QPointF(self.snap.pos))
             nitem.setScale(float(self.snap.scale))
-        except Exception as e:
-            print(f"[DeleteNodeCommand] undo UI build failed: {e}\n{traceback.format_exc()}")
+        except Exception:
+            logger.exception("[DeleteNodeCommand] undo UI build failed")
             return  # IMPORTANT: don’t fall through and touch nitem
 
         # Rewire incoming edges: src -> restored
@@ -175,8 +176,8 @@ class DeleteNodeCommand(QUndoCommand):
                 edge = EdgeItem(src_port, dst_port)
                 self.editor.scene.edges.append(edge)
                 self.editor.scene.addItem(edge)
-            except Exception as e:
-                print(f"[DeleteNodeCommand] restore incoming failed: {e}\n{traceback.format_exc()}")
+            except Exception:
+                logger.exception("[DeleteNodeCommand] restore incoming failed")
 
         # Rewire outgoing edges: restored -> dst
         for (dst_b, dst_port_name, src_port_name) in self.snap.outgoing_edges:
@@ -201,8 +202,8 @@ class DeleteNodeCommand(QUndoCommand):
                 edge = EdgeItem(src_port, dst_port)
                 self.editor.scene.edges.append(edge)
                 self.editor.scene.addItem(edge)
-            except Exception as e:
-                print(f"[DeleteNodeCommand] restore outgoing failed: {e}\n{traceback.format_exc()}")
+            except Exception:
+                logger.exception("[DeleteNodeCommand] restore outgoing failed")
 
         # Finalize
         self._restored_item = nitem
@@ -229,8 +230,9 @@ class DeleteNodesCommand(QUndoCommand):
         for it in list(targets):
             try:
                 self.editor.scene.delete_node_item(it)
-            except Exception as e:
-                print(f"[DeleteNodesCommand] redo failed for {getattr(it.backend_node, 'name', 'Node')}: {e}")
+            except Exception:
+                logger.exception("[DeleteNodesCommand] redo failed for %s",
+                                  getattr(it.backend_node, 'name', 'Node'))
         # After redo, clear restored list so undo can rebuild fresh from snapshots
         self._restored_items.clear()
 
@@ -261,8 +263,8 @@ class DeleteNodesCommand(QUndoCommand):
                 nitem.setScale(float(snap.scale))
 
                 self._restored_items.append(nitem)  # only now it’s safe
-            except Exception as e:
-                print(f"[DeleteNodesCommand] undo instantiate failed: {e}\n{traceback.format_exc()}")
+            except Exception:
+                logger.exception("[DeleteNodesCommand] undo instantiate failed")
                 continue
 
         self._restored_item = nitem
@@ -305,8 +307,8 @@ class DeleteNodesCommand(QUndoCommand):
                     edge = EdgeItem(src_port, dst_port)
                     self.editor.scene.edges.append(edge)
                     self.editor.scene.addItem(edge)
-                except Exception as e:
-                    print(f"[DeleteNodesCommand] restore incoming failed: {e}")
+                except Exception:
+                    logger.exception("[DeleteNodesCommand] restore incoming failed")
 
             # outgoing: nitem -> dst
             for (dst_b, dst_port_name, src_port_name) in snap.outgoing_edges:
@@ -331,8 +333,8 @@ class DeleteNodesCommand(QUndoCommand):
                     edge = EdgeItem(src_port, dst_port)
                     self.editor.scene.edges.append(edge)
                     self.editor.scene.addItem(edge)
-                except Exception as e:
-                    print(f"[DeleteNodesCommand] restore outgoing failed: {e}")
+                except Exception:
+                    logger.exception("[DeleteNodesCommand] restore outgoing failed")
 
         # One downstream refresh
         try:
@@ -369,15 +371,15 @@ class SetNodeParamCommand(QUndoCommand):
     def undo(self):
         try:
             self.node_item.backend_node.set_params(**{self.param_name: self.old_value})
-        except Exception as e:
-            print(f"[Undo] SetNodeParamCommand failed: {e}")
+        except Exception:
+            logger.exception("[Undo] SetNodeParamCommand failed")
         self.editor.update_previews_from(self.node_item)
 
     def redo(self):
         try:
             self.node_item.backend_node.set_params(**{self.param_name: self.new_value})
-        except Exception as e:
-            print(f"[Redo] SetNodeParamCommand failed: {e}")
+        except Exception:
+            logger.exception("[Redo] SetNodeParamCommand failed")
         self.editor.update_previews_from(self.node_item)
 
     # Merge identical param changes for smoother slider drags
@@ -413,8 +415,8 @@ class MoveNodeCommand(QUndoCommand):
     def undo(self):
         try:
             self.node_item.setPos(self.old)
-        except Exception as e:
-            print(f"[Undo] MoveNodeCommand failed: {e}")
+        except Exception:
+            logger.exception("[Undo] MoveNodeCommand failed")
         # optional: refresh edges
         try:
             sc = self.editor.scene
@@ -426,8 +428,8 @@ class MoveNodeCommand(QUndoCommand):
     def redo(self):
         try:
             self.node_item.setPos(self.new)
-        except Exception as e:
-            print(f"[Redo] MoveNodeCommand failed: {e}")
+        except Exception:
+            logger.exception("[Redo] MoveNodeCommand failed")
         try:
             sc = self.editor.scene
             if sc and hasattr(sc, 'update_edges_for_node'):

@@ -1,9 +1,12 @@
 
 # texture_pig/nodes/utils.py
+import logging
 import numpy as np
 from PySide6.QtCore import QFile, QResource
 from PySide6.QtGui import QIcon, QPixmap
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 def luma(rgb3: np.ndarray) -> np.ndarray:
     """
@@ -91,16 +94,16 @@ def resolve_qt_resource_or_fs(resource_path: str) -> QIcon:
                 if not fs_icon.isNull():
                     return fs_icon
                 else:
-                    print(f"[Icon] Failed to load: {fs_path}")
+                    logger.warning("Failed to load icon: %s", fs_path)
             else:
-                print(f"[Icon] Not found: {resource_path} (tried {fs_path})")
-        except Exception as e:
-            print(f"[Icon] Error loading {resource_path}: {e}")
+                logger.warning("Icon not found: %s (tried %s)", resource_path, fs_path)
+        except Exception:
+            logger.exception("Error loading icon %s", resource_path)
     else:
         # Already a filesystem path
         fs_icon = QIcon(resource_path)
         if fs_icon.isNull():
-            print(f"[Icon] Filesystem icon isNull: {resource_path}")
+            logger.warning("Filesystem icon isNull: %s", resource_path)
         return fs_icon
 
     # Final empty icon (UI still renders a button)
@@ -161,6 +164,6 @@ def load_stylesheet_with_fallback(app):
             app.setStyleSheet(css)
             return
         else:
-            print("[QSS] Stylesheet not found:", fs_qss)
-    except Exception as e:
-        print("[QSS] Error loading stylesheet:", e)
+            logger.warning("Stylesheet not found: %s", fs_qss)
+    except Exception:
+        logger.exception("Error loading stylesheet")

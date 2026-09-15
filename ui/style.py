@@ -1,8 +1,11 @@
 # ui/style.py
+import logging
 import os
 import sys
 from PySide6.QtCore import QResource, QFile
 from PySide6.QtWidgets import QApplication
+
+logger = logging.getLogger(__name__)
 
 def resource_path(rel_path: str) -> str:
     """
@@ -22,10 +25,10 @@ def register_qt_resources() -> bool:
     if os.path.exists(rcc_path):
         ok = QResource.registerResource(rcc_path)
         if not ok:
-            print(f"[style] Failed to register Qt resources: {rcc_path}")
+            logger.warning("Failed to register Qt resources: %s", rcc_path)
         return bool(ok)
     else:
-        print(f"[style] .rcc not found at {rcc_path} (did you run pyside6-rcc?)")
+        logger.debug(".rcc not found at %s (falling back to filesystem)", rcc_path)
         return False
 
 def load_app_stylesheet(app: QApplication) -> bool:
@@ -42,7 +45,7 @@ def load_app_stylesheet(app: QApplication) -> bool:
             f.close()
             return True
         else:
-            print("[style] Could not open :/ui/qss/style.qss from resources.")
+            logger.warning("Could not open :/ui/qss/style.qss from resources.")
 
     # Fallback to file system (dev mode)
     qss_abs = resource_path('ui/qss/style.qss')
@@ -50,8 +53,8 @@ def load_app_stylesheet(app: QApplication) -> bool:
         with open(qss_abs, 'r', encoding='utf-8') as f:
             qss = f.read()
         app.setStyleSheet(qss)
-        print(f"[style] Loaded QSS from disk: {qss_abs}")
+        logger.debug("Loaded QSS from disk: %s", qss_abs)
         return True
-    except Exception as e:
-        print(f"[style] Failed to load stylesheet from {qss_abs}: {e}")
+    except Exception:
+        logger.exception("Failed to load stylesheet from %s", qss_abs)
         return False

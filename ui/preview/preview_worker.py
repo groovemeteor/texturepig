@@ -11,6 +11,7 @@ Architecture:
 6. New slider change → cancel pending full-size renders
 """
 from __future__ import annotations
+import logging
 from typing import Optional, Dict, Set, List, TYPE_CHECKING
 from dataclasses import dataclass, field
 from enum import IntEnum
@@ -21,6 +22,8 @@ import numpy as np
 from PIL import Image
 
 from PySide6.QtCore import QObject, Signal, QRunnable, QThreadPool, QMutex, QMutexLocker
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from texture_pig.ui.nodes.node_item import NodeItem
@@ -306,14 +309,14 @@ class PreviewWorkerPool(QObject):
             else:
                 # Fallback: use existing update method
                 node_item.update_preview(self.editor.graph)
-        except Exception as e:
-            print(f"[PreviewWorker] Error updating preview: {e}")
+        except Exception:
+            logger.exception("Error updating preview")
 
     def _on_preview_error(self, node_item: 'NodeItem', error: str):
         """Handle preview render error (called on main thread)."""
         with QMutexLocker(self._pending_lock):
             self._pending.discard(id(node_item))
-        print(f"[PreviewWorker] Render error for {getattr(node_item, 'label', '?')}: {error}")
+        logger.warning("Render error for %s: %s", getattr(node_item, 'label', '?'), error)
 
     def shutdown(self):
         """Wait for all pending tasks to complete."""

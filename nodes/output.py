@@ -1,6 +1,9 @@
 # texture_pig/nodes/output.py
 from __future__ import annotations
+import logging
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 class Output:
     """
@@ -41,9 +44,9 @@ class Output:
             src = connection
         try:
             return src.evaluate(int(size))
-        except Exception as e:
+        except Exception:
             # Safe fallback: red tile
-            print(f"[Output] Upstream evaluate failed: {type(e).__name__}: {e}")
+            logger.exception("Upstream evaluate failed")
             out = np.zeros((size, size, 4), dtype=np.float32)
             out[..., 0] = 0.6
             out[..., 3] = 1.0

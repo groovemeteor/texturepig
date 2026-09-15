@@ -1,10 +1,13 @@
 
 # ui/scene/graph_scene.py
 from __future__ import annotations
+import logging
 from typing import Optional, List, Dict
 
 from PySide6.QtCore import QPointF, Qt
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsItem, QMessageBox
+
+logger = logging.getLogger(__name__)
 
 from texture_pig.ui.nodes.port_item import PortItem
 from texture_pig.ui.nodes.edge_item import EdgeItem
@@ -69,8 +72,8 @@ class GraphScene(QGraphicsScene):
         # Backend removal
         try:
             self.editor.remove_backend_node(node_item.backend_node)
-        except Exception as e:
-            print('Backend node removal failed:', e)
+        except Exception:
+            logger.exception("Backend node removal failed")
 
         # Refresh previews
         if self.nodes:

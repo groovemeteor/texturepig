@@ -1,10 +1,13 @@
 # ui/preview/large_preview.py
 from __future__ import annotations
+import logging
 from typing import Optional
 import time
 
 import numpy as np
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 from PySide6.QtCore import Qt, QThread, Signal, QObject
 from PySide6.QtGui import QPainter, QColor, QPixmap, QBrush
@@ -42,8 +45,8 @@ class _RenderWorker(QObject):
                 self.finished.emit(arr, self.render_id)
             else:
                 self.finished.emit(None, self.render_id)
-        except Exception as e:
-            print(f"[RenderWorker] Error: {e}")
+        except Exception:
+            logger.exception("RenderWorker error")
             self.finished.emit(None, self.render_id)
 
 
@@ -200,8 +203,8 @@ class LargePreviewPanel(QWidget):
             self._apply_zoom_mode()
             self._update_zoom_label()
             QApplication.processEvents()  # Show the preview immediately
-        except Exception as e:
-            print(f"[LargePreview] Low-res preview failed: {e}")
+        except Exception:
+            logger.exception("Low-res preview failed")
 
         # Start background thread for full resolution
         self._render_id += 1
@@ -227,12 +230,12 @@ class LargePreviewPanel(QWidget):
             self.pix_item.setOffset(0, 0)
             self._apply_zoom_mode()
             self._update_zoom_label()
-        except Exception as e:
+        except Exception:
             w = h = int(self._fallback_side())
             pm = QPixmap(w, h)
             pm.fill(QColor('#552222'))
             self.pix_item.setPixmap(pm)
-            print("[LargePreview] Render failed:", e)
+            logger.exception("Render failed")
             self._apply_zoom_mode()
             self._update_zoom_label()
         finally:
@@ -261,8 +264,8 @@ class LargePreviewPanel(QWidget):
             self._apply_zoom_mode()
             self._update_zoom_label()
             self._show_status(f"Preview rendered in {elapsed:.2f}s", timeout=2000)
-        except Exception as e:
-            print(f"[LargePreview] Failed to display render result: {e}")
+        except Exception:
+            logger.exception("Failed to display render result")
             self._show_status("Preview render failed", timeout=2000)
 
     def _cancel_pending_render(self):

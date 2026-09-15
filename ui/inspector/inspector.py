@@ -1,6 +1,9 @@
 from __future__ import annotations
+import logging
 from typing import Optional
 from shiboken6 import isValid
+
+logger = logging.getLogger(__name__)
 
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QWidget, QFormLayout, QLabel, QMessageBox, QCheckBox
@@ -794,8 +797,8 @@ class Inspector(QWidget):
         # Update current node preview (synchronous for now - threading caused race conditions)
         try:
             nitem.update_preview(self.editor.graph)
-        except Exception as e:
-            print(f"[Live Change Error] {param_name}={value}: {e}")
+        except Exception:
+            logger.exception("Live change failed for %s=%r", param_name, value)
 
     def _update_downstream_nodes(self):
         """
