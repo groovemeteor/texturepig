@@ -60,10 +60,10 @@ Texture Pig uses a decoupled architecture:
 - **Command Pattern**: All user actions are encapsulated into `QUndoCommand` objects for robust state management.
 
 ### Requirements
-- Python 3.9+
+- Python 3.10+
 - PySide6
 - NumPy
-- OpenCV (opencv-python)
+- OpenCV (opencv-python-headless)
 - Pillow (PIL)
 
 ```bash
@@ -72,7 +72,9 @@ python -m venv .venv
 source .venv/bin/activate   # on Windows: .venv\\Scripts\\activate
 
 # install dependencies
-pip install PySide6 numpy opencv-python pillow
+pip install PySide6 numpy opencv-python-headless pillow
+# or, to also get the `texture-pig-editor` command and the test suite:
+pip install -e ".[dev]"
 ```
 
 ## 🚀 Running the app
@@ -246,8 +248,8 @@ TexturePig.spec also explicitly excludes several large Qt subsystems the app nev
 ### Scalar
 Scalar nodes output single numeric values and can be connected to numeric input ports on other nodes.
 
-- `Float` — outputs a single floating-point value. Parameters: `value` (default 0.5), `min_val`, `max_val`.
-- `Int` — outputs a single integer value. Parameters: `value` (default 0), `min_val`, `max_val`.
+- `Float` — outputs a single floating-point value. Parameters: `value` (default 0.5), `min_value`, `max_value`.
+- `Int` — outputs a single integer value. Parameters: `value` (default 0), `min_value`, `max_value`.
 - `ScalarAdd` — adds two scalar inputs (`a + b`).
 - `ScalarSub` — subtracts two scalar inputs (`a - b`).
 - `ScalarMul` — multiplies two scalar inputs (`a * b`).
