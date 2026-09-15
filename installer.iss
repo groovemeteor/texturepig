@@ -19,7 +19,7 @@
 #define MyAppVersion "0.1.0"
 #define MyAppPublisher "Robin Grotenfelt"
 #define MyAppExeName "TexturePig.exe"
-#define MyAppURL "https://github.com/groovemeteor/texture_pig"
+#define MyAppURL "https://github.com/groovemeteor/texturepig"
 #define MyBuildDir "dist\TexturePig"
 
 [Setup]

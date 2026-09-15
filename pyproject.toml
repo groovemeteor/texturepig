@@ -19,8 +19,8 @@ dependencies = [
 dev = ["pytest>=8.0"]
 
 [project.urls]
-Homepage = "https://github.com/groovemeteor/texture_pig"
-Issues = "https://github.com/groovemeteor/texture_pig/issues"
+Homepage = "https://github.com/groovemeteor/texturepig"
+Issues = "https://github.com/groovemeteor/texturepig/issues"
 
 [project.scripts]
 texture-pig-editor = "texture_pig.ui.qt_editor:run"
