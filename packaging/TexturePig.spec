@@ -16,23 +16,27 @@ import os
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 # ---- Paths ----
-REPO_ROOT = SPECPATH
+# This spec lives in packaging/, so the repo root is one level up.
+PACKAGING_DIR = SPECPATH
+REPO_ROOT = os.path.dirname(PACKAGING_DIR)
+SRC_DIR = os.path.join(REPO_ROOT, 'src')
+PKG_DIR = os.path.join(SRC_DIR, 'texture_pig')
 
-# Entry script - use launcher.py which has absolute imports for PyInstaller compatibility
-ENTRY_SCRIPT = os.path.join(REPO_ROOT, 'launcher.py')
+# Entry script - launcher.py uses absolute imports for PyInstaller compatibility
+ENTRY_SCRIPT = os.path.join(PACKAGING_DIR, 'launcher.py')
 
 # ---- Data collection ----
 datas = []
 
 # App's own non-Python data (QSS, compiled Qt resources, JSON examples).
-datas += collect_data_files(os.path.join(REPO_ROOT, 'ui'))       # includes qss and resources.rcc
+datas += collect_data_files(os.path.join(PKG_DIR, 'ui'))         # includes qss and resources.rcc
 datas += collect_data_files(os.path.join(REPO_ROOT, 'examples')) # JSON example(s)
 
-icons_dir = os.path.join(REPO_ROOT, 'ui', 'icons')
+icons_dir = os.path.join(PKG_DIR, 'ui', 'icons')
 if os.path.isdir(icons_dir):
     datas.append((icons_dir, 'ui/icons'))
 
-rcc_src = os.path.join(REPO_ROOT, 'ui', 'resources.rcc')
+rcc_src = os.path.join(PKG_DIR, 'ui', 'resources.rcc')
 if os.path.exists(rcc_src):
     datas.append((rcc_src, 'ui/resources.rcc'))
 
@@ -82,7 +86,7 @@ excludes = [
 # ---- Analysis ----
 a = Analysis(
     [ENTRY_SCRIPT],
-    pathex=[REPO_ROOT, os.path.dirname(REPO_ROOT)],  # Include parent dir for texture_pig package
+    pathex=[SRC_DIR],  # src layout: texture_pig lives under src/
     binaries=[],
     datas=datas,
     hiddenimports=hiddenimports,
@@ -187,7 +191,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=os.path.join(REPO_ROOT, 'ui', 'icons', 'app.ico'),
+    icon=os.path.join(PKG_DIR, 'ui', 'icons', 'app.ico'),
 )
 
 # ---- COLLECT: assembles the exe + all binaries/data into dist/TexturePig/ ----

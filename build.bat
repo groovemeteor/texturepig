@@ -1,6 +1,9 @@
 @echo off
 REM Texture Pig - Windows Build Script
 REM Compiles Qt resources, builds the app (onedir), and packages an installer.
+REM
+REM Layout note: sources live in src\texture_pig\, build inputs in packaging\.
+REM Outputs land at the repo root: dist\TexturePig\ and installer_output\.
 
 setlocal enabledelayedexpansion
 
@@ -13,14 +16,18 @@ REM Check if Python is available
 python --version >nul 2>&1
 if errorlevel 1 (
     echo ERROR: Python not found in PATH
-    echo Please install Python 3.9+ and add it to your PATH
+    echo Please install Python 3.10+ and add it to your PATH
     pause
     exit /b 1
 )
 
-REM Get the script directory
+REM Run from the repo root (this script's directory)
 set "SCRIPT_DIR=%~dp0"
 cd /d "%SCRIPT_DIR%"
+
+set "QRC=src\texture_pig\ui\resources.qrc"
+set "RCC_PY=src\texture_pig\ui\icons_rc.py"
+set "RCC_BIN=src\texture_pig\ui\resources.rcc"
 
 echo [1/5] Checking dependencies...
 python -c "import PySide6" >nul 2>&1
@@ -38,26 +45,26 @@ if errorlevel 1 (
 
 echo.
 echo [2/5] Compiling Qt resources...
-pyside6-rcc ui/resources.qrc -o ui/icons_rc.py
+pyside6-rcc "%QRC%" -o "%RCC_PY%"
 if errorlevel 1 (
     echo      Trying alternative method...
-    python -c "import PySide6; import os; print(os.path.dirname(PySide6.__file__))" > temp_path.txt
+    python -c "import PySide6, os; print(os.path.dirname(PySide6.__file__))" > temp_path.txt
     set /p PYSIDE_PATH=<temp_path.txt
     del temp_path.txt
-    "!PYSIDE_PATH!\rcc.exe" ui/resources.qrc -o ui/icons_rc.py
+    "!PYSIDE_PATH!\rcc.exe" "%QRC%" -o "%RCC_PY%"
     if errorlevel 1 (
         echo ERROR: Failed to compile Qt resources
         pause
         exit /b 1
     )
 )
-pyside6-rcc ui/resources.qrc -binary -o ui/resources.rcc
+pyside6-rcc "%QRC%" -binary -o "%RCC_BIN%"
 echo      Qt resources compiled successfully
 
 echo.
 echo [3/5] Building executable with PyInstaller...
 echo      This may take a few minutes...
-pyinstaller --clean -y TexturePig.spec
+pyinstaller --clean -y packaging\TexturePig.spec
 if errorlevel 1 (
     echo ERROR: PyInstaller build failed
     pause
@@ -77,7 +84,7 @@ if "!ISCC!"=="" (
     echo      Install it from https://jrsoftware.org/isinfo.php to build TexturePigSetup-*.exe,
     echo      or: winget install JRSoftware.InnoSetup
 ) else (
-    "!ISCC!" installer.iss
+    "!ISCC!" packaging\installer.iss
     if errorlevel 1 (
         echo ERROR: Installer build failed
         pause

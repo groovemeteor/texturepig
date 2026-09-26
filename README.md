@@ -59,6 +59,36 @@ Texture Pig uses a decoupled architecture:
 - **Frontend**: PySide6 (Qt) for a responsive, hardware-accelerated user interface.
 - **Command Pattern**: All user actions are encapsulated into `QUndoCommand` objects for robust state management.
 
+### Project layout
+
+```
+src/texture_pig/        the package (standard src layout)
+├── nodes/              backend: node types + graph evaluation, no Qt in the math
+│   ├── core.py         Node/Graph base, caching, scalar-param resolution
+│   ├── generators.py   noise + gradients
+│   ├── shapes.py       circle/rect/triangle/line/stripes/hexgrid
+│   ├── filters.py      blur, transform, levels, invert, combine/split
+│   ├── layout.py       grid, radial grid, mirror, atlas
+│   ├── blends.py       blend modes, lerp
+│   └── scalar/         Float/Int + arithmetic nodes
+├── ui/                 PySide6 editor
+│   ├── qt_editor.py    main window, NODE_REGISTRY, save/load
+│   ├── nodes/          node/port/edge graphics items
+│   ├── inspector/      parameter panel + field widgets
+│   ├── scene/          canvas scene & view
+│   ├── preview/        threaded preview rendering
+│   ├── palette/        node palette, quick-add, gradient editor
+│   └── commands/       undo/redo commands
+└── logging_setup.py    rotating file log + excepthook
+
+packaging/              build inputs (TexturePig.spec, installer.iss, launcher.py)
+tests/                  pytest suite
+examples/               sample graphs (.json)
+build.bat               one-click: resources -> PyInstaller -> installer
+```
+
+Build outputs (`build/`, `dist/`, `installer_output/`) are generated and git-ignored.
+
 ### Requirements
 - Python 3.10+
 - PySide6
@@ -111,22 +141,22 @@ The app works without compiled resources (uses filesystem fallback), but for dis
 
 **Option 1: Python module (recommended for PyInstaller)**
 ```cmd
-pyside6-rcc ui/resources.qrc -o ui/icons_rc.py
+pyside6-rcc src/texture_pig/ui/resources.qrc -o src/texture_pig/ui/icons_rc.py
 ```
 
 **Option 2: Binary .rcc file**
 ```cmd
-pyside6-rcc ui/resources.qrc -binary -o ui/resources.rcc
+pyside6-rcc src/texture_pig/ui/resources.qrc -binary -o src/texture_pig/ui/resources.rcc
 ```
 
 If `pyside6-rcc` is not in your PATH, use the full path to the executable:
 ```cmd
 # Standard Python installation:
 python -c "import PySide6; print(PySide6.__file__)"  # Find PySide6 location
-# Then use: <PySide6_path>\rcc.exe ui/resources.qrc -o ui/icons_rc.py
+# Then use: <PySide6_path>\rcc.exe src/texture_pig/ui/resources.qrc -o src/texture_pig/ui/icons_rc.py
 
 # Example for typical Windows installation:
-"C:\Users\<username>\AppData\Local\Programs\Python\Python311\Lib\site-packages\PySide6\rcc.exe" ui/resources.qrc -o ui/icons_rc.py
+"C:\Users\<username>\AppData\Local\Programs\Python\Python311\Lib\site-packages\PySide6\rcc.exe" src/texture_pig/ui/resources.qrc -o src/texture_pig/ui/icons_rc.py
 ```
 
 ---
@@ -159,18 +189,18 @@ pip install -r requirements.txt
 
 **2. Compile Qt resources:**
 ```cmd
-pyside6-rcc ui/resources.qrc -o ui/icons_rc.py
-pyside6-rcc ui/resources.qrc -binary -o ui/resources.rcc
+pyside6-rcc src/texture_pig/ui/resources.qrc -o src/texture_pig/ui/icons_rc.py
+pyside6-rcc src/texture_pig/ui/resources.qrc -binary -o src/texture_pig/ui/resources.rcc
 ```
 
 **3. Run PyInstaller:**
 ```cmd
-pyinstaller --clean TexturePig.spec
+pyinstaller --clean packaging/TexturePig.spec
 ```
 
 **4. Build the installer (optional):**
 ```cmd
-ISCC installer.iss
+ISCC packaging/installer.iss
 ```
 
 ### Build Output
@@ -469,6 +499,6 @@ class MyFilter(GenerationCacheMixin):
 ```
 
 **Integration steps:**
-1. Add to `NODE_REGISTRY` in `qt_editor.py`
+1. Add to `NODE_REGISTRY` in `src/texture_pig/ui/qt_editor.py`
 2. Add a button/entry in the **Palette**
 3. Add an Inspector branch to expose parameters

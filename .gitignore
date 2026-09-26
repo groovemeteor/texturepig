@@ -17,7 +17,7 @@ htmlcov/
 .coverage
 
 # Generated Qt resources (compiled from resources.qrc)
-ui/icons_rc.py
+src/texture_pig/ui/icons_rc.py
 
 # venvs
 .venv/

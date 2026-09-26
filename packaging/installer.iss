@@ -20,7 +20,8 @@
 #define MyAppPublisher "Robin Grotenfelt"
 #define MyAppExeName "TexturePig.exe"
 #define MyAppURL "https://github.com/groovemeteor/texturepig"
-#define MyBuildDir "dist\TexturePig"
+; Paths are relative to this .iss (packaging/), so step up to the repo root.
+#define MyBuildDir "..\dist\TexturePig"
 
 [Setup]
 AppId={{B6C6E9B9-6E0B-4B7B-9C8C-3E7B7B5C9F41}
@@ -39,9 +40,9 @@ DisableProgramGroupPage=yes
 ; (shared across Windows accounts) is preferred instead.
 PrivilegesRequired=lowest
 UsePreviousAppDir=yes
-OutputDir=installer_output
+OutputDir=..\installer_output
 OutputBaseFilename=TexturePigSetup-{#MyAppVersion}
-SetupIconFile=ui\icons\app.ico
+SetupIconFile=..\src\texture_pig\ui\icons\app.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2/max
 SolidCompression=yes
@@ -50,7 +51,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 ; No LICENSE file in the repo yet -- add one and uncomment this to show a
 ; license-acceptance page in the wizard:
-; LicenseFile=LICENSE
+; LicenseFile=..\LICENSE
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

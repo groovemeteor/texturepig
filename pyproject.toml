@@ -30,29 +30,17 @@ texture-pig-editor = "texture_pig.ui.qt_editor:run"
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.package-data]
-"texture_pig.ui" = ["qss/*.qss"]
-
 [tool.setuptools]
 include-package-data = true
-# The package root (texture_pig) *is* this repository directory -- there's no
-# separate src/texture_pig subfolder -- so auto-discovery can't tell "nodes",
-# "ui", etc. apart from unrelated top-level packages. Map them explicitly.
-package-dir = { "texture_pig" = "." }
-packages = [
-    "texture_pig",
-    "texture_pig.nodes",
-    "texture_pig.nodes.scalar",
-    "texture_pig.ui",
-    "texture_pig.ui.commands",
-    "texture_pig.ui.inspector",
-    "texture_pig.ui.nodes",
-    "texture_pig.ui.palette",
-    "texture_pig.ui.preview",
-    "texture_pig.ui.scene",
-    "texture_pig.ui.utils",
-]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"texture_pig.ui" = ["qss/*.qss", "icons/*", "*.rcc"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Import the package straight from src/ without needing an install first.
+pythonpath = ["src"]
 
