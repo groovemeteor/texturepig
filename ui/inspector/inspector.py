@@ -95,14 +95,26 @@ class Inspector(QWidget):
             fb.add_float('scalar_value', float(getattr(n, 'scalar_value', 0.0)), -1000.0, 1000.0, 0.01, exposable=False)
 
         elif isinstance(n, (ScalarAdd, ScalarSub, ScalarMul, ScalarDiv)):
-            # Math nodes - show a/b parameters (can be overridden by scalar inputs)
-            fb.add_float_input('a', float(getattr(n, 'a', 0.0)), -1000.0, 1000.0, 0.01, exposable=False)
-            fb.add_float_input('b', float(getattr(n, 'b', 0.0)), -1000.0, 1000.0, 0.01, exposable=False)
+            # Math nodes - a/b are overridden by anything wired to those inputs.
+            # Sliders span a modest range; the spin box still takes any value.
+            fb.add_float_with_slider('a', float(getattr(n, 'a', 0.0)), -10.0, 10.0, 0.01,
+                                     slider_resolution=2000, exposable=False)
+            fb.add_float_with_slider('b', float(getattr(n, 'b', 0.0)), -10.0, 10.0, 0.01,
+                                     slider_resolution=2000, exposable=False)
 
         elif isinstance(n, ScalarClamp):
-            fb.add_float_input('value', float(getattr(n, 'value', 0.5)), -1000.0, 1000.0, 0.01, exposable=False)
             fb.add_float_input('min_val', float(getattr(n, 'min_val', 0.0)), -1000.0, 1000.0, 0.01, exposable=False)
             fb.add_float_input('max_val', float(getattr(n, 'max_val', 1.0)), -1000.0, 1000.0, 0.01, exposable=False)
+            fb.add_thin_separator()
+            # Slider spans the clamp range so dragging maps to the useful interval
+            cmin = float(getattr(n, 'min_val', 0.0))
+            cmax = float(getattr(n, 'max_val', 1.0))
+            if cmin > cmax:
+                cmin, cmax = cmax, cmin
+            if cmin == cmax:
+                cmax = cmin + 1.0
+            fb.add_float_with_slider('value', float(getattr(n, 'value', 0.5)), cmin, cmax, 0.001,
+                                     slider_resolution=1000, exposable=False)
 
         elif isinstance(n, Float):
             fb.add_float_input('min_value', float(getattr(n, 'min_value', 0.0)), -1000.0, 1000.0, 0.01, exposable=False)
@@ -129,7 +141,7 @@ class Inspector(QWidget):
                 min_v, max_v = max_v, min_v  # Swap to ensure valid range
             if min_v == max_v:
                 max_v = min_v + 1  # Ensure non-zero range
-            fb.add_int_input('value', int(getattr(n, 'value', 0)), min_v, max_v, 1, exposable=False)
+            fb.add_int_with_slider('value', int(getattr(n, 'value', 0)), min_v, max_v, 1, exposable=False)
 
         elif isinstance(n, PerlinNoise):
             fb.add_int('seed', n.seed if n.seed is not None else 0, -2 ** 31, 2 ** 31 - 1, 1)

@@ -112,7 +112,7 @@ class GaussianBlur(GenerationCacheMixin):
         if img.ndim != 3 or img.shape[-1] != 4:
             return np.zeros((size, size, 4), dtype=np.float32)
 
-        if self.sigma <= 0.0:
+        if self.p('sigma') <= 0.0:
             result = np.clip(img, 0.0, 1.0)
             self._store_cache(size, result)
             return result
@@ -120,7 +120,7 @@ class GaussianBlur(GenerationCacheMixin):
         if self.alpha_only:
             # Blur A only, keep RGB unchanged -> great for soft masks
             a = img[..., 3:4]
-            a_blur = self._cv2_blur(a, self.sigma)
+            a_blur = self._cv2_blur(a, self.p('sigma'))
             out = img.copy()
             out[..., 3:4] = a_blur
             out = np.clip(out, 0.0, 1.0)
@@ -134,8 +134,8 @@ class GaussianBlur(GenerationCacheMixin):
         rgb_pm = rgb * a
 
         # Use OpenCV GaussianBlur for speed
-        rgb_pm_b = self._cv2_blur(rgb_pm, self.sigma)
-        a_b = self._cv2_blur(a, self.sigma)
+        rgb_pm_b = self._cv2_blur(rgb_pm, self.p('sigma'))
+        a_b = self._cv2_blur(a, self.p('sigma'))
 
         # Safe un-premultiply: only divide where a_b > eps
         eps = 1e-8
@@ -248,19 +248,19 @@ class Transform(GenerationCacheMixin):
         H = W = size
 
         # Pivot in pixels
-        pivot_x = float(self.pivot_cx) * W
-        pivot_y = float(self.pivot_cy) * H
+        pivot_x = float(self.p('pivot_cx')) * W
+        pivot_y = float(self.p('pivot_cy')) * H
 
         # Translation in pixels
-        tx_px = float(self.tx) * W
-        ty_px = float(self.ty) * H
+        tx_px = float(self.p('tx')) * W
+        ty_px = float(self.p('ty')) * H
 
         # Combined scale
-        sx = float(self.scale) * float(self.scale_x)
-        sy = float(self.scale) * float(self.scale_y)
+        sx = float(self.p('scale')) * float(self.p('scale_x'))
+        sy = float(self.p('scale')) * float(self.p('scale_y'))
 
         # Rotation in radians
-        theta = np.deg2rad(float(self.rotation_deg))
+        theta = np.deg2rad(float(self.p('rotation_deg')))
         cos_t = np.cos(theta)
         sin_t = np.sin(theta)
 
@@ -313,21 +313,21 @@ class Transform(GenerationCacheMixin):
         yd = (np.arange(H, dtype=np.float32)[:, None]).repeat(W, axis=1)
 
         # Pivot in px
-        pivot_x = np.float32(self.pivot_cx) * W
-        pivot_y = np.float32(self.pivot_cy) * H
+        pivot_x = np.float32(self.p('pivot_cx')) * W
+        pivot_y = np.float32(self.p('pivot_cy')) * H
 
         # Effective per-pixel parameters
-        tx_px = np.float32(self.tx) * W * F
-        ty_px = np.float32(self.ty) * H * F
+        tx_px = np.float32(self.p('tx')) * W * F
+        ty_px = np.float32(self.p('ty')) * H * F
 
         # Uniform scale multiplies X/Y scales
-        base_scale_x = np.float32(self.scale) * np.float32(self.scale_x)
-        base_scale_y = np.float32(self.scale) * np.float32(self.scale_y)
+        base_scale_x = np.float32(self.p('scale')) * np.float32(self.p('scale_x'))
+        base_scale_y = np.float32(self.p('scale')) * np.float32(self.p('scale_y'))
 
         sx_eff = 1.0 + F * (base_scale_x - 1.0)  # lerp identity -> base scale
         sy_eff = 1.0 + F * (base_scale_y - 1.0)
 
-        th_eff = np.deg2rad(np.float32(self.rotation_deg)) * F
+        th_eff = np.deg2rad(np.float32(self.p('rotation_deg'))) * F
         c = np.cos(th_eff).astype(np.float32)
         s = np.sin(th_eff).astype(np.float32)
 
@@ -452,7 +452,7 @@ class Invert(GenerationCacheMixin):
         img = self._ensure_rgba(img, H)
 
         # Base opacity
-        op = np.float32(np.clip(self.opacity, 0.0, 1.0))
+        op = np.float32(np.clip(self.p('opacity'), 0.0, 1.0))
 
         # Optional mask modulation
         mimg = _eval_connection(self.inputs.get('mask'), size)
@@ -609,23 +609,23 @@ class Levels(GenerationCacheMixin):
         # Apply RGB levels
         adj_rgb = self._levels_map(
             rgb,
-            float(self.in_black), float(self.in_white),
-            float(self.gamma),
-            float(self.out_black), float(self.out_white)
+            float(self.p('in_black')), float(self.p('in_white')),
+            float(self.p('gamma')),
+            float(self.p('out_black')), float(self.p('out_white'))
         )
 
         # Apply Alpha levels
         adj_a = self._levels_map(
             a,
-            float(self.a_in_black), float(self.a_in_white),
-            float(self.a_gamma),
-            float(self.a_out_black), float(self.a_out_white)
+            float(self.p('a_in_black')), float(self.p('a_in_white')),
+            float(self.p('a_gamma')),
+            float(self.p('a_out_black')), float(self.p('a_out_white'))
         )
 
         adjusted = np.concatenate([adj_rgb, adj_a], axis=-1)
 
         # Opacity and mask modulation
-        op = np.float32(np.clip(self.opacity, 0.0, 1.0))
+        op = np.float32(np.clip(self.p('opacity'), 0.0, 1.0))
         if mask is not None:
             eff = op * mask  # (H,W,1)
         else:

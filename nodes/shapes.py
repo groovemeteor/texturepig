@@ -1,4 +1,4 @@
-﻿# pynodes/nodes/shapes.py
+# pynodes/nodes/shapes.py
 from __future__ import annotations
 import numpy as np
 import math
@@ -542,7 +542,10 @@ class Line(Node):
         img = Image.new('RGBA', (S, S), (0,0,0,0))
         draw = ImageDraw.Draw(img)
         col = tuple(int(max(0,min(255,c*255))) for c in self.color)
-        draw.line([self.x0*S, self.y0*S, self.x1*S, self.y1*S], fill=col, width=[1, int(self.width*S)][1])
+        x0 = get_scalar_param(self, 'x0', self.x0); y0 = get_scalar_param(self, 'y0', self.y0)
+        x1 = get_scalar_param(self, 'x1', self.x1); y1 = get_scalar_param(self, 'y1', self.y1)
+        w = get_scalar_param(self, 'width', self.width)
+        draw.line([x0*S, y0*S, x1*S, y1*S], fill=col, width=max(1, int(w*S)))
         arr = np.asarray(img, dtype=np.uint8)
         if ss > 1:
             # Use cv2.resize (faster than PIL)
@@ -615,7 +618,7 @@ class Stripes:
         dy = Y - 0.5
 
         # Rotate coordinates
-        th = np.deg2rad(np.float32(self.rotation_deg))
+        th = np.deg2rad(np.float32(get_scalar_param(self, 'rotation_deg', self.rotation_deg)))
         c = np.cos(th).astype(np.float32)
         s = np.sin(th).astype(np.float32)
         # After rotation, we only care about the x-coordinate for vertical stripes
@@ -626,8 +629,8 @@ class Stripes:
 
         # Calculate stripe positions: i / (count + 1) for i in 1..count
         count = max(1, get_scalar_param_int(self, 'count', self.count))
-        half_thickness = self.thickness * 0.5
-        edge_soft = max(0.0, self.edge_softness)
+        half_thickness = get_scalar_param(self, 'thickness', self.thickness) * 0.5
+        edge_soft = max(0.0, get_scalar_param(self, 'edge_softness', self.edge_softness))
 
         # Initialize mask
         mask = np.zeros((H, W), dtype=np.float32)
@@ -734,11 +737,11 @@ class HexGrid:
         sqrt3 = np.sqrt(3.0)
 
         # Base hex radius from user's hex_size
-        base_radius = self.hex_size * size * 0.5
+        base_radius = get_scalar_param(self, 'hex_size', self.hex_size) * size * 0.5
 
         # Stretch factors - applied to coordinate space to deform hexagons
-        stretch_x = max(0.01, self.stretch_x)
-        stretch_y = max(0.01, self.stretch_y)
+        stretch_x = max(0.01, get_scalar_param(self, 'stretch_x', self.stretch_x))
+        stretch_y = max(0.01, get_scalar_param(self, 'stretch_y', self.stretch_y))
 
         if self.orientation == 'flat':
             # Flat-top: quantize horizontal period for seamless horizontal tiling
@@ -766,15 +769,15 @@ class HexGrid:
         X, Y = np.meshgrid(x, y, indexing='xy')
 
         # Center the pattern, apply offset
-        X = X - size * 0.5 - self.offset_x * size
-        Y = Y - size * 0.5 - self.offset_y * size
+        X = X - size * 0.5 - get_scalar_param(self, 'offset_x', self.offset_x) * size
+        Y = Y - size * 0.5 - get_scalar_param(self, 'offset_y', self.offset_y) * size
 
         # Apply inverse stretch to coordinates (stretching the hex means shrinking coordinate space)
         X_hex = X / stretch_x
         Y_hex = Y / stretch_y
 
-        half_thickness = self.thickness * size * 0.5
-        edge_soft = max(0.0, self.edge_softness) * size
+        half_thickness = get_scalar_param(self, 'thickness', self.thickness) * size * 0.5
+        edge_soft = max(0.0, get_scalar_param(self, 'edge_softness', self.edge_softness)) * size
 
         # Use offset coordinate system in unstretched hex space
         if self.orientation == 'flat':
@@ -849,7 +852,7 @@ class HexGrid:
         Returns (tileable_width, tileable_height) as integers.
         """
         sqrt3 = np.sqrt(3.0)
-        base_radius = self.hex_size * size * 0.5
+        base_radius = get_scalar_param(self, 'hex_size', self.hex_size) * size * 0.5
 
         if self.orientation == 'flat':
             # Flat-top: quantize to n_x columns

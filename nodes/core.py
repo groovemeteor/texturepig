@@ -117,6 +117,16 @@ class GenerationCacheMixin:
     4. Call _bump_generation() in invalidate()
     """
 
+    def p(self, name: str, default=None):
+        """
+        Read a parameter, honoring a scalar node wired to it.
+
+        Use this instead of `self.<name>` for any numeric parameter the editor
+        lets you expose as a scalar input -- reading the attribute directly
+        ignores the connection, so the wire silently does nothing.
+        """
+        return get_scalar_param(self, name, getattr(self, name, default))
+
     def _init_generation_cache(self):
         """Initialize generation cache state. Call in __init__."""
         self._generation: int = 0
@@ -403,8 +413,9 @@ class Node:
         return (self._generation, self._upstream_generation_hash())
 
     def _rng(self) -> np.random.Generator:
-        seed = self.seed if self.seed is not None else 0
-        return np.random.default_rng(seed)
+        # Honor a scalar node wired to 'seed' so noise can be driven from the graph
+        seed = get_scalar_param(self, 'seed', self.seed)
+        return np.random.default_rng(int(seed) if seed is not None else 0)
 
     def input_arr(self, key: str, size: int) -> Optional[np.ndarray]:
         """Helper to evaluate an input node and return its array."""
@@ -421,6 +432,14 @@ class Node:
         else:
             # Legacy: direct node reference
             return connection.evaluate(size)
+
+    def p(self, name: str, default=None):
+        """
+        Read a parameter, honoring a scalar node wired to it.
+
+        Shorthand for get_param(); see GenerationCacheMixin.p for the rationale.
+        """
+        return self.get_param(name, getattr(self, name, default))
 
     def get_param(self, param_name: str, default=None):
         """

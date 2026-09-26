@@ -164,7 +164,7 @@ class Text(Node):
         draw = ImageDraw.Draw(img)
 
         # Calculate font size in pixels
-        font_size_px = max(1, int(self.font_size * size))
+        font_size_px = max(1, int(self.p('font_size') * size))
         font = self._get_font(font_size_px)
 
         if font is None or not self.text.strip():
@@ -174,7 +174,7 @@ class Text(Node):
         color_255 = tuple(int(c * 255) for c in self.color)
 
         # Calculate padding
-        pad = int(self.padding * size)
+        pad = int(self.p('padding') * size)
         available_width = size - 2 * pad
         available_height = size - 2 * pad
 
@@ -196,7 +196,7 @@ class Text(Node):
             line_heights.append(lh)
 
         base_line_height = max(line_heights) if line_heights else font_size_px
-        spacing = int(base_line_height * (self.line_spacing - 1.0))
+        spacing = int(base_line_height * (self.p('line_spacing') - 1.0))
         total_height = sum(line_heights) + spacing * (len(lines) - 1)
 
         # Calculate starting Y position based on vertical alignment

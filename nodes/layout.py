@@ -5,7 +5,63 @@ import numpy as np
 import math
 import cv2
 
-from texture_pig.nodes.core import GenerationCacheMixin, get_scalar_param_int
+import re
+
+from texture_pig.nodes.core import (
+    GenerationCacheMixin, get_scalar_param, get_scalar_param_int,
+)
+
+
+def _is_image_slot(name: str) -> bool:
+    """
+    True for the dynamic image-input slot names ('in0', 'in1', ...).
+
+    Grid/RadialGrid/Atlas rebuild those slots whenever their count changes, so
+    they're handled differently from params exposed as scalar inputs (like
+    'count'), which must survive a rebuild.
+    """
+    return bool(re.fullmatch(r'in\d+', str(name or '')))
+
+
+def _connect_slot_or_param(self, name, node, output_port='out'):
+    """
+    Shared connect() for the multi-input layout nodes.
+
+    Image slots must already exist (they're created by _rebuild_inputs from the
+    current count), but any other name is a parameter exposed as a scalar input
+    in the editor -- those are accepted as-is. Previously the 'name in
+    self.inputs' guard silently dropped them, so wiring a scalar node to e.g.
+    RadialGrid's 'count' did nothing at all.
+    """
+    if name == 'src':
+        name = 'in0'
+    if _is_image_slot(name) and name not in self.inputs:
+        return
+    self.inputs[name] = (node, output_port)
+    if hasattr(node, 'dependents'):
+        node.dependents.add(self)
+    self.invalidate()
+
+
+def _rebuilt_slots(old_inputs: dict, slot_count: int) -> dict:
+    """
+    Rebuild the in0..inN image slots, carrying over scalar-param connections.
+
+    Anything that isn't an image slot (an exposed param like 'count') is kept,
+    otherwise changing the count would silently drop the scalar wire.
+    """
+    inputs = {}
+    for i in range(slot_count):
+        key = f'in{i}'
+        inputs[key] = old_inputs.get(key)
+    # Backwards compatibility: an old 'src' connection maps to 'in0'
+    if old_inputs.get('src') is not None and inputs.get('in0') is None:
+        inputs['in0'] = old_inputs['src']
+    # Preserve exposed scalar-param connections
+    for key, conn in old_inputs.items():
+        if key != 'src' and not _is_image_slot(key) and key not in inputs:
+            inputs[key] = conn
+    return inputs
 
 
 def _validate_color_stops(stops):
@@ -239,29 +295,14 @@ class Grid(GenerationCacheMixin):
         self._rebuild_inputs()
 
     def _rebuild_inputs(self):
-        """Rebuild inputs dict based on current num_inputs."""
-        old_inputs = dict(self.inputs)
-        self.inputs = {}
-        for i in range(self.num_inputs):
-            key = f'in{i}'
-            self.inputs[key] = old_inputs.get(key)
-        # Backwards compatibility: if old 'src' was connected, map to 'in0'
-        if 'src' in old_inputs and old_inputs['src'] is not None and self.inputs.get('in0') is None:
-            self.inputs['in0'] = old_inputs['src']
+        """Rebuild image slots, keeping any exposed scalar-param connections."""
+        self.inputs = _rebuilt_slots(dict(self.inputs), self.num_inputs)
 
     def get_input_names(self) -> list:
         """Return list of current input names based on num_inputs."""
         return [f'in{i}' for i in range(self.num_inputs)]
 
-    def connect(self, name, node, output_port='out'):
-        # Support legacy 'src' name by mapping to 'in0'
-        if name == 'src':
-            name = 'in0'
-        if name in self.inputs:
-            self.inputs[name] = (node, output_port)
-            if hasattr(node, 'dependents'):
-                node.dependents.add(self)
-        self.invalidate()
+    connect = _connect_slot_or_param
 
     def set_params(self, **kwargs):
         if 'color_stops' in kwargs:
@@ -305,10 +346,10 @@ class Grid(GenerationCacheMixin):
             return np.zeros((size, size, 4), dtype=np.float32)
 
         # Grid region in pixels (clamped to canvas)
-        rx = int(np.clip(self.region_x, 0.0, 1.0) * size)
-        ry = int(np.clip(self.region_y, 0.0, 1.0) * size)
-        rw = int(np.clip(self.region_w, 0.0, 1.0) * size)
-        rh = int(np.clip(self.region_h, 0.0, 1.0) * size)
+        rx = int(np.clip(get_scalar_param(self, 'region_x', self.region_x), 0.0, 1.0) * size)
+        ry = int(np.clip(get_scalar_param(self, 'region_y', self.region_y), 0.0, 1.0) * size)
+        rw = int(np.clip(get_scalar_param(self, 'region_w', self.region_w), 0.0, 1.0) * size)
+        rh = int(np.clip(get_scalar_param(self, 'region_h', self.region_h), 0.0, 1.0) * size)
         rx = max(0, min(rx, size)); ry = max(0, min(ry, size))
         rw = max(1, min(rw, size - rx)); rh = max(1, min(rh, size - ry))
 
@@ -317,8 +358,8 @@ class Grid(GenerationCacheMixin):
         ch_f = rh / float(ny)
 
         # Padding (fraction of cell). 0.1 => 10% margins inside the cell.
-        px = float(np.clip(self.pad_x, 0.0, 1.0))
-        py = float(np.clip(self.pad_y, 0.0, 1.0))
+        px = float(np.clip(get_scalar_param(self, 'pad_x', self.pad_x), 0.0, 1.0))
+        py = float(np.clip(get_scalar_param(self, 'pad_y', self.pad_y), 0.0, 1.0))
         inner_w_f = max(0.0, cw_f * (1.0 - px))
         inner_h_f = max(0.0, ch_f * (1.0 - py))
 
@@ -331,9 +372,11 @@ class Grid(GenerationCacheMixin):
             base_h = int(max(1, round(inner_h_f)))
 
         # Scales (>=0; allow >1)
-        s_uni = float(np.clip(self.scale, 0.0, None))
-        sx = float(np.clip(self.scale_x if self.scale_x is not None else s_uni, 0.0, None))
-        sy = float(np.clip(self.scale_y if self.scale_y is not None else s_uni, 0.0, None))
+        s_uni = float(np.clip(get_scalar_param(self, 'scale', self.scale), 0.0, None))
+        _sx = get_scalar_param(self, 'scale_x', self.scale_x)
+        _sy = get_scalar_param(self, 'scale_y', self.scale_y)
+        sx = float(np.clip(_sx if _sx is not None else s_uni, 0.0, None))
+        sy = float(np.clip(_sy if _sy is not None else s_uni, 0.0, None))
 
         # Final tile dimensions
         tile_w = max(1, int(round(base_w * sx)))
@@ -495,29 +538,14 @@ class RadialGrid(GenerationCacheMixin):
         self._rebuild_inputs()
 
     def _rebuild_inputs(self):
-        """Rebuild inputs dict based on current num_inputs."""
-        old_inputs = dict(self.inputs)
-        self.inputs = {}
-        for i in range(self.num_inputs):
-            key = f'in{i}'
-            self.inputs[key] = old_inputs.get(key)
-        # Backwards compatibility: if old 'src' was connected, map to 'in0'
-        if 'src' in old_inputs and old_inputs['src'] is not None and self.inputs.get('in0') is None:
-            self.inputs['in0'] = old_inputs['src']
+        """Rebuild image slots, keeping any exposed scalar-param connections."""
+        self.inputs = _rebuilt_slots(dict(self.inputs), self.num_inputs)
 
     def get_input_names(self) -> list:
         """Return list of current input names based on num_inputs."""
         return [f'in{i}' for i in range(self.num_inputs)]
 
-    def connect(self, name, node, output_port='out'):
-        # Support legacy 'src' name by mapping to 'in0'
-        if name == 'src':
-            name = 'in0'
-        if name in self.inputs:
-            self.inputs[name] = (node, output_port)
-            if hasattr(node, 'dependents'):
-                node.dependents.add(self)
-        self.invalidate()
+    connect = _connect_slot_or_param
 
     def set_params(self, **kwargs):
         if 'rotate_mode' in kwargs:
@@ -547,12 +575,15 @@ class RadialGrid(GenerationCacheMixin):
         self._dirty = True
 
     def _instance_angle_deg(self, i: int, n: int) -> float:
+        start = float(get_scalar_param(self, 'start_angle_deg', self.start_angle_deg))
+        offset = float(get_scalar_param(self, 'angle_offset_deg', self.angle_offset_deg))
+        sweep = float(get_scalar_param(self, 'sweep_deg', self.sweep_deg))
         if n <= 1:
-            return self.start_angle_deg + self.angle_offset_deg
+            return start + offset
         # identical to Circular: distribute over sweep; for full circle use count, else count-1
-        full_circle = abs(self.sweep_deg) >= 360.0 - 1e-6
+        full_circle = abs(sweep) >= 360.0 - 1e-6
         t = float(i) / float(n) if full_circle else float(i) / float(n - 1)
-        return self.start_angle_deg + t * self.sweep_deg + self.angle_offset_deg
+        return start + t * sweep + offset
 
     def evaluate(self, size: int = 512) -> np.ndarray:
         # Check cache first
@@ -569,15 +600,16 @@ class RadialGrid(GenerationCacheMixin):
             return np.zeros((size, size, 4), dtype=np.float32)
 
         # Canvas-space center and radius
-        cx_px = int(round(np.clip(self.cx, 0.0, 1.0) * size))
-        cy_px = int(round(np.clip(self.cy, 0.0, 1.0) * size))
-        radius_px = float(np.clip(self.radius, 0.0, 1.0) * size)
+        cx_px = int(round(np.clip(get_scalar_param(self, 'cx', self.cx), 0.0, 1.0) * size))
+        cy_px = int(round(np.clip(get_scalar_param(self, 'cy', self.cy), 0.0, 1.0) * size))
+        radius_px = float(np.clip(get_scalar_param(self, 'radius', self.radius), 0.0, 1.0) * size)
 
         # Base tile edge in pixels, then apply scales (no fitting)
-        base_edge = max(1, int(round(np.clip(self.tile_edge_frac, 0.0, 1.0) * size)))
-        s = max(0.0, self.scale)
-        sx = s * max(0.0, self.scale_x)
-        sy = s * max(0.0, self.scale_y)
+        base_edge = max(1, int(round(
+            np.clip(get_scalar_param(self, 'tile_edge_frac', self.tile_edge_frac), 0.0, 1.0) * size)))
+        s = max(0.0, float(get_scalar_param(self, 'scale', self.scale)))
+        sx = s * max(0.0, float(get_scalar_param(self, 'scale_x', self.scale_x)))
+        sy = s * max(0.0, float(get_scalar_param(self, 'scale_y', self.scale_y)))
         tile_w = max(1, int(round(base_edge * sx)))
         tile_h = max(1, int(round(base_edge * sy)))
 
@@ -633,8 +665,9 @@ class RadialGrid(GenerationCacheMixin):
             # none    → extra
             tile = current_tile_base
             inst_angle = 0.0
-            if self.rotate_mode != 'none' or abs(self.item_rotation_deg) > 1e-6:
-                extra = float(self.item_rotation_deg)
+            item_rot = float(get_scalar_param(self, 'item_rotation_deg', self.item_rotation_deg))
+            if self.rotate_mode != 'none' or abs(item_rot) > 1e-6:
+                extra = item_rot
                 if self.rotate_mode == 'radial':
                     inst_angle = ang_deg + 90.0 + extra
                 elif self.rotate_mode == 'tangent':
@@ -821,20 +854,10 @@ class Atlas(GenerationCacheMixin):
         self._rebuild_inputs()
 
     def _rebuild_inputs(self):
-        """Rebuild inputs dict based on current cells count."""
-        # Keep existing connections where possible
-        old_inputs = dict(self.inputs)
-        self.inputs = {}
-        for i in range(self.cells):
-            key = f'in{i}'
-            self.inputs[key] = old_inputs.get(key)
+        """Rebuild image slots, keeping any exposed scalar-param connections."""
+        self.inputs = _rebuilt_slots(dict(self.inputs), self.cells)
 
-    def connect(self, name, node, output_port='out'):
-        if name in self.inputs:
-            self.inputs[name] = (node, output_port)
-            if hasattr(node, 'dependents'):
-                node.dependents.add(self)
-        self.invalidate()
+    connect = _connect_slot_or_param
 
     def set_params(self, **kwargs):
         old_cells = self.cells

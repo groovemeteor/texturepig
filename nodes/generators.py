@@ -97,8 +97,8 @@ class GradientLinear(Node):
         # map to [-1, 1]
         xx = (x / (size - 1)) * 2.0 - 1.0
         yy = (y / (size - 1)) * 2.0 - 1.0
-        theta = np.deg2rad(self.angle_deg)
-        v = np.cos(theta) * xx + np.sin(theta) * yy + self.offset
+        theta = np.deg2rad(self.p('angle_deg'))
+        v = np.cos(theta) * xx + np.sin(theta) * yy + self.p('offset')
         v = _normalize01(v)
         if self.invert:
             v = 1.0 - v
@@ -145,10 +145,10 @@ class GradientRadial(Node):
         y, x = np.mgrid[0:size, 0:size].astype(np.float32)
         xn = x / (size - 1)
         yn = y / (size - 1)
-        dx = xn - self.cx
-        dy = yn - self.cy
+        dx = xn - self.p('cx')
+        dy = yn - self.p('cy')
         d = np.sqrt(dx*dx + dy*dy)
-        v = np.clip(d / max(self.radius, 1e-6), 0.0, 1.0)
+        v = np.clip(d / max(self.p('radius'), 1e-6), 0.0, 1.0)
         if self.invert:
             v = 1.0 - v
 
@@ -225,7 +225,7 @@ class GradientReflected(Node):
         yn = y / (size - 1)
 
         # Axis direction from angle
-        ang = np.deg2rad(self.angle_deg).astype(np.float32)
+        ang = np.deg2rad(self.p('angle_deg')).astype(np.float32)
         dx = np.cos(ang)
         dy = np.sin(ang)
 
@@ -234,7 +234,7 @@ class GradientReflected(Node):
         t = np.clip(t, 0.0, 1.0)
 
         # Triangular ramp peaking at 'midpoint'
-        m = float(np.clip(self.midpoint, 1e-6, 1.0 - 1e-6))
+        m = float(np.clip(self.p('midpoint'), 1e-6, 1.0 - 1e-6))
         val = np.where(t <= m, t / m, (1.0 - t) / (1.0 - m)).astype(np.float32)
         val = np.clip(val, 0.0, 1.0)
 
@@ -293,12 +293,12 @@ class GradientAngle(Node):
         xn = x / (size - 1)
         yn = y / (size - 1)
 
-        dx = xn - self.cx
-        dy = yn - self.cy
+        dx = xn - self.p('cx')
+        dy = yn - self.p('cy')
 
         theta = np.arctan2(dy, dx)  # [-pi, pi]
         norm = (theta / (2.0 * np.pi)) + 0.5  # [0..1]
-        norm = (norm + (self.angle_offset_deg / 360.0)) % 1.0
+        norm = (norm + (self.p('angle_offset_deg') / 360.0)) % 1.0
 
         val = norm.astype(np.float32)
         if self.invert:
@@ -353,17 +353,17 @@ class PerlinNoise(Node):
         amp = 1.0
         freq = 1.0
 
-        for _ in range(self.octaves):
+        for _ in range(max(1, int(self.p('octaves')))):
             # Integer period for this octave - must match coordinate range exactly
-            period = max(1, int(round(freq * size / self.scale)))
+            period = max(1, int(round(freq * size / self.p('scale'))))
             # Coordinates span exactly 0 to period across the tile
             # This ensures the seam aligns perfectly when tiled
             nx = ix * period / size
             ny = iy * period / size
             total += amp * perlin2_tileable(nx, ny, period)
             max_amp += amp
-            amp *= self.persistence
-            freq *= self.lacunarity
+            amp *= self.p('persistence')
+            freq *= self.p('lacunarity')
 
         v = total / (max_amp + 1e-8)
         v = (v - v.min()) / (v.max() - v.min() + 1e-8)
@@ -378,8 +378,9 @@ class WorleyNoise(Node):
     def _compute(self, size: int) -> np.ndarray:
         rng = self._rng()
         # Generate base feature points in [0, 1)
-        pts = rng.random((self.points, 2), dtype=np.float32)
-        pts += (rng.random((self.points, 2), dtype=np.float32) - 0.5) * self.jitter
+        n_points = max(1, int(self.p('points')))
+        pts = rng.random((n_points, 2), dtype=np.float32)
+        pts += (rng.random((n_points, 2), dtype=np.float32) - 0.5) * self.p('jitter')
         # Wrap points to [0, 1) range
         pts = pts % 1.0
 

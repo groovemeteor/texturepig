@@ -1,7 +1,7 @@
 
 import numpy as np
 import cv2
-from .core import Node
+from .core import Node, get_scalar_param
 
 class Lerp(Node):
     """
@@ -173,7 +173,7 @@ class Blend:
         base  = _ensure_rgba(_safe_eval(base_node, size), size)
         blend = _ensure_rgba(_safe_eval(blend_node, size), size) if blend_node is not None else np.zeros_like(base)
         M     = self._resolve_mask(size, base, blend, mask_node)  # (H,W,1) or None
-        op    = np.float32(np.clip(self.opacity, 0.0, 1.0))
+        op    = np.float32(np.clip(get_scalar_param(self, 'opacity', self.opacity), 0.0, 1.0))
 
         # If a mask exists, modulate opacity by mask
         if M is not None:
