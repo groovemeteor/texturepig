@@ -64,7 +64,11 @@ echo      Qt resources compiled successfully
 echo.
 echo [3/5] Building executable with PyInstaller...
 echo      This may take a few minutes...
-pyinstaller --clean -y packaging\TexturePig.spec
+REM --workpath keeps PyInstaller's scratch files in build\intermediate\.
+REM They include a TexturePig.exe that looks like the app but is NOT runnable:
+REM it's the bare bootloader stub, with no _internal\ folder beside it. Only
+REM dist\TexturePig\TexturePig.exe actually runs.
+pyinstaller --clean -y --workpath build\intermediate packaging\TexturePig.spec
 if errorlevel 1 (
     echo ERROR: PyInstaller build failed
     pause
@@ -99,8 +103,12 @@ echo ============================================
 echo    Build Output:
 echo ============================================
 echo.
-echo    App folder:    dist\TexturePig\   (run dist\TexturePig\TexturePig.exe)
+echo    RUN THIS:      dist\TexturePig\TexturePig.exe
 echo    Installer:     installer_output\TexturePigSetup-*.exe
+echo.
+echo    Note: build\intermediate\ holds PyInstaller scratch files, including
+echo          a TexturePig.exe that will NOT run (no _internal\ beside it).
+echo          Always launch the one in dist\TexturePig\.
 echo.
 echo ============================================
 

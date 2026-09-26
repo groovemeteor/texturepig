@@ -87,7 +87,9 @@ examples/               sample graphs (.json)
 build.bat               one-click: resources -> PyInstaller -> installer
 ```
 
-Build outputs (`build/`, `dist/`, `installer_output/`) are generated and git-ignored.
+Build outputs are generated and git-ignored: `dist/` holds the runnable app,
+`installer_output/` the installer, and `build/intermediate/` PyInstaller's
+scratch files (which include a **non-runnable** `TexturePig.exe` — see below).
 
 ### Requirements
 - Python 3.10+
@@ -207,8 +209,14 @@ ISCC packaging/installer.iss
 
 | Output | Path | Size | Description |
 |--------|------|------|-------------|
-| **App folder** | `dist/TexturePig/` | ~213 MB on disk | The app itself (onedir). Run `TexturePig.exe` from here directly, or zip the folder to share it. |
+| **App folder** | `dist/TexturePig/` | ~213 MB on disk | The app itself (onedir). **This is the one to run**: `dist/TexturePig/TexturePig.exe`. Zip the whole folder to share it. |
 | **Installer** | `installer_output/TexturePigSetup-*.exe` | ~57 MB download | What you actually hand to users: a normal installer wizard, Start Menu shortcut, optional desktop icon, and a proper uninstaller in "Apps & Features". |
+
+> ⚠️ **`build/intermediate/` also contains a `TexturePig.exe` — it does not run.**
+> That's PyInstaller's bare bootloader stub, byte-identical to the real one but
+> without the `_internal/` folder it needs beside it. Launching it does nothing
+> visible (the app is built with `console=False`, so the loader error surfaces
+> as a modal dialog rather than console output). Always launch from `dist/`.
 
 The build is intentionally **onedir, not onefile**: a onefile exe re-extracts its entire payload to a temp directory on every launch, which for a Qt + NumPy + OpenCV app measurably dominates startup time. Onedir has nothing to unpack at runtime -- in local testing, the app is fully initialized (interpreter + Qt + logging) well under half a second after launch.
 
