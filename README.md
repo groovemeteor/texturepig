@@ -85,11 +85,13 @@ packaging/              build inputs (TexturePig.spec, installer.iss, launcher.p
 tests/                  pytest suite
 examples/               sample graphs (.json)
 build.bat               one-click: resources -> PyInstaller -> installer
+out/                    everything the build produces (git-ignored)
+├── TexturePig/         the app -- run out/TexturePig/TexturePig.exe
+└── TexturePigSetup-*.exe   the installer
 ```
 
-Build outputs are generated and git-ignored: `dist/` holds the runnable app,
-`installer_output/` the installer, and `build/intermediate/` PyInstaller's
-scratch files (which include a **non-runnable** `TexturePig.exe` — see below).
+`out/` is the only build output directory; PyInstaller's scratch files go to
+the system temp dir rather than into the project.
 
 ### Requirements
 - Python 3.10+
@@ -197,7 +199,7 @@ pyside6-rcc src/texture_pig/ui/resources.qrc -binary -o src/texture_pig/ui/resou
 
 **3. Run PyInstaller:**
 ```cmd
-pyinstaller --clean packaging/TexturePig.spec
+pyinstaller --clean --distpath out --workpath %TEMP%\texturepig-build packaging\TexturePig.spec
 ```
 
 **4. Build the installer (optional):**
@@ -209,18 +211,17 @@ ISCC packaging/installer.iss
 
 | Output | Path | Size | Description |
 |--------|------|------|-------------|
-| **App folder** | `dist/TexturePig/` | ~213 MB on disk | The app itself (onedir). **This is the one to run**: `dist/TexturePig/TexturePig.exe`. Zip the whole folder to share it. |
-| **Installer** | `installer_output/TexturePigSetup-*.exe` | ~57 MB download | What you actually hand to users: a normal installer wizard, Start Menu shortcut, optional desktop icon, and a proper uninstaller in "Apps & Features". |
+| **App folder** | `out/TexturePig/` | ~213 MB on disk | The app itself (onedir). **This is the one to run**: `out/TexturePig/TexturePig.exe`. Zip the whole folder to share it. |
+| **Installer** | `out/TexturePigSetup-*.exe` | ~57 MB download | What you actually hand to users: a normal installer wizard, Start Menu shortcut, optional desktop icon, and a proper uninstaller in "Apps & Features". |
 
-> ⚠️ **`build/intermediate/` also contains a `TexturePig.exe` — it does not run.**
-> That's PyInstaller's bare bootloader stub, byte-identical to the real one but
-> without the `_internal/` folder it needs beside it. Launching it does nothing
-> visible (the app is built with `console=False`, so the loader error surfaces
-> as a modal dialog rather than console output). Always launch from `dist/`.
+Both artifacts live in `out/`, and it's the only output directory. PyInstaller's
+scratch files (which include a bootloader stub also named `TexturePig.exe` that
+can't run on its own) are written to `%TEMP%	exturepig-build\` so they can't be
+mistaken for the real thing.
 
 The build is intentionally **onedir, not onefile**: a onefile exe re-extracts its entire payload to a temp directory on every launch, which for a Qt + NumPy + OpenCV app measurably dominates startup time. Onedir has nothing to unpack at runtime -- in local testing, the app is fully initialized (interpreter + Qt + logging) well under half a second after launch.
 
-TexturePig.spec also explicitly excludes several large Qt subsystems the app never uses (WebEngine/Chromium, QML/Quick, 3D, multimedia codecs, SQL drivers, networking, translations) that PyInstaller's default PySide6 hook otherwise bundles wholesale -- unfiltered, the onedir build was 789 MB; filtered, it's 213 MB. If you add a feature that needs one of those Qt modules back, remove the matching pattern from `_UNUSED_QT_PATTERNS` in `TexturePig.spec`.
+TexturePig.spec also explicitly excludes several large Qt subsystems the app never uses (WebEngine/Chromium, QML/Quick, 3D, multimedia codecs, SQL drivers, networking, translations) that PyInstaller's default PySide6 hook otherwise bundles wholesale -- unfiltered, the onedir build was 789 MB; filtered, it's 213 MB. If you add a feature that needs one of those Qt modules back, remove the matching pattern from `_UNUSED_QT_PATTERNS` in `packaging/TexturePig.spec`.
 
 **Note on unsigned installers:** `TexturePigSetup-*.exe` isn't code-signed, so Windows SmartScreen may warn first-time users ("Windows protected your PC" -> More info -> Run anyway), and some locked-down machines (Application Control / WDAC policies) may block it outright. Code signing requires purchasing a certificate and is out of scope here, but is the standard fix if this becomes a problem for your users.
 

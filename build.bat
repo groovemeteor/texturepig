@@ -1,9 +1,15 @@
 @echo off
-REM Texture Pig - Windows Build Script
+REM Texture Pig - Windows build script.
 REM Compiles Qt resources, builds the app (onedir), and packages an installer.
 REM
-REM Layout note: sources live in src\texture_pig\, build inputs in packaging\.
-REM Outputs land at the repo root: dist\TexturePig\ and installer_output\.
+REM Layout:  src\texture_pig\   sources
+REM          packaging\         build inputs (spec, installer script, launcher)
+REM          out\               everything this script produces
+REM
+REM Everything lands in out\:
+REM     out\TexturePig\TexturePig.exe   <- the app (run this)
+REM     out\TexturePigSetup-*.exe       <- the installer
+REM PyInstaller's scratch files go to %TEMP%, deliberately not into the project.
 
 setlocal enabledelayedexpansion
 
@@ -12,28 +18,39 @@ echo    Texture Pig - Windows Build Script
 echo ============================================
 echo.
 
-REM Check if Python is available
-python --version >nul 2>&1
-if errorlevel 1 (
-    echo ERROR: Python not found in PATH
-    echo Please install Python 3.10+ and add it to your PATH
-    pause
-    exit /b 1
-)
-
 REM Run from the repo root (this script's directory)
 set "SCRIPT_DIR=%~dp0"
 cd /d "%SCRIPT_DIR%"
 
+REM Prefer the project's virtualenv if there is one, so the build doesn't
+REM silently pick up a different interpreter that happens to be on PATH.
+if exist ".venv\Scripts\python.exe" (
+    set "PY=.venv\Scripts\python.exe"
+    set "RCC=.venv\Scripts\pyside6-rcc.exe"
+    set "VENV_NOTE= (using .venv)"
+) else (
+    where python >nul 2>&1
+    if errorlevel 1 (
+        echo ERROR: Python not found in PATH and no .venv\ in the project.
+        echo Create one with:  python -m venv .venv ^&^& .venv\Scripts\pip install -e ".[dev]"
+        pause
+        exit /b 1
+    )
+    set "PY=python"
+    set "RCC=pyside6-rcc"
+    set "VENV_NOTE="
+)
+
 set "QRC=src\texture_pig\ui\resources.qrc"
 set "RCC_PY=src\texture_pig\ui\icons_rc.py"
 set "RCC_BIN=src\texture_pig\ui\resources.rcc"
+set "WORK_DIR=%TEMP%\texturepig-build"
 
-echo [1/5] Checking dependencies...
-python -c "import PySide6" >nul 2>&1
+echo [1/5] Checking dependencies!VENV_NOTE!...
+"!PY!" -c "import PySide6, numpy, cv2, PIL" >nul 2>&1
 if errorlevel 1 (
-    echo      PySide6 not found. Installing dependencies...
-    pip install -r requirements.txt
+    echo      Missing dependencies. Installing from requirements.txt...
+    "!PY!" -m pip install -r requirements.txt
     if errorlevel 1 (
         echo ERROR: Failed to install dependencies
         pause
@@ -45,30 +62,34 @@ if errorlevel 1 (
 
 echo.
 echo [2/5] Compiling Qt resources...
-pyside6-rcc "%QRC%" -o "%RCC_PY%"
-if errorlevel 1 (
-    echo      Trying alternative method...
-    python -c "import PySide6, os; print(os.path.dirname(PySide6.__file__))" > temp_path.txt
-    set /p PYSIDE_PATH=<temp_path.txt
-    del temp_path.txt
-    "!PYSIDE_PATH!\rcc.exe" "%QRC%" -o "%RCC_PY%"
-    if errorlevel 1 (
-        echo ERROR: Failed to compile Qt resources
-        pause
-        exit /b 1
-    )
+REM pyside6-rcc ships in the same Scripts\ dir as the interpreter; if it isn't
+REM there, fall back to rcc.exe inside the installed PySide6 package.
+if not exist "!RCC!" where "!RCC!" >nul 2>&1 || (
+    for /f "usebackq delims=" %%P in (`"!PY!" -c "import PySide6,os;print(os.path.join(os.path.dirname(PySide6.__file__),'rcc.exe'))"`) do set "RCC=%%P"
 )
-pyside6-rcc "%QRC%" -binary -o "%RCC_BIN%"
+"!RCC!" "%QRC%" -o "%RCC_PY%"
+if errorlevel 1 (
+    echo ERROR: Failed to compile Qt resources ^(tried: !RCC!^)
+    pause
+    exit /b 1
+)
+"!RCC!" "%QRC%" -binary -o "%RCC_BIN%"
+if errorlevel 1 (
+    echo ERROR: Failed to compile binary Qt resources
+    pause
+    exit /b 1
+)
 echo      Qt resources compiled successfully
 
 echo.
 echo [3/5] Building executable with PyInstaller...
 echo      This may take a few minutes...
-REM --workpath keeps PyInstaller's scratch files in build\intermediate\.
-REM They include a TexturePig.exe that looks like the app but is NOT runnable:
-REM it's the bare bootloader stub, with no _internal\ folder beside it. Only
-REM dist\TexturePig\TexturePig.exe actually runs.
-pyinstaller --clean -y --workpath build\intermediate packaging\TexturePig.spec
+REM --distpath : finished app -> out\TexturePig\
+REM --workpath : scratch -> %TEMP%. Those scratch files include a TexturePig.exe
+REM              that looks like the app but cannot run (bare bootloader stub
+REM              with no _internal\ beside it). Keeping it out of the project
+REM              means there is only ever one TexturePig.exe here.
+"!PY!" -m PyInstaller --clean -y --distpath out --workpath "%WORK_DIR%" packaging\TexturePig.spec
 if errorlevel 1 (
     echo ERROR: PyInstaller build failed
     pause
@@ -85,7 +106,7 @@ if "!ISCC!"=="" if exist "%ProgramFiles%\Inno Setup 6\ISCC.exe" set "ISCC=%Progr
 
 if "!ISCC!"=="" (
     echo      Inno Setup not found - skipping installer step.
-    echo      Install it from https://jrsoftware.org/isinfo.php to build TexturePigSetup-*.exe,
+    echo      Install it from https://jrsoftware.org/isinfo.php
     echo      or: winget install JRSoftware.InnoSetup
 ) else (
     "!ISCC!" packaging\installer.iss
@@ -100,15 +121,13 @@ echo.
 echo [5/5] Build complete!
 echo.
 echo ============================================
-echo    Build Output:
+echo    Build Output
 echo ============================================
 echo.
-echo    RUN THIS:      dist\TexturePig\TexturePig.exe
-echo    Installer:     installer_output\TexturePigSetup-*.exe
+echo    RUN THIS:   out\TexturePig\TexturePig.exe
+echo    Installer:  out\TexturePigSetup-*.exe
 echo.
-echo    Note: build\intermediate\ holds PyInstaller scratch files, including
-echo          a TexturePig.exe that will NOT run (no _internal\ beside it).
-echo          Always launch the one in dist\TexturePig\.
+echo    (scratch files: %WORK_DIR% - outside the project)
 echo.
 echo ============================================
 

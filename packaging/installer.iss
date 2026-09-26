@@ -1,17 +1,17 @@
 ; installer.iss
 ; Inno Setup script for Texture Pig.
 ;
-; Packages the PyInstaller onedir build (dist\TexturePig\) into a single,
+; Packages the PyInstaller onedir build (out\TexturePig\) into a single,
 ; ordinary Windows installer: Start Menu shortcut, optional desktop icon,
 ; a proper uninstaller in "Apps & Features", and one distributable .exe
 ; (Inno Setup LZMA-compresses the payload for the download, but installs it
 ; uncompressed on disk -- so the fast onedir startup is unaffected).
 ;
 ; Build order:
-;   1. build.bat  (or: pyinstaller --clean -y TexturePig.spec)
-;      -> produces dist\TexturePig\TexturePig.exe + supporting files
-;   2. ISCC.exe installer.iss
-;      -> produces installer_output\TexturePigSetup-<version>.exe
+;   1. build.bat  (or: pyinstaller --clean -y --distpath out packaging\TexturePig.spec)
+;      -> produces out\TexturePig\TexturePig.exe + supporting files
+;   2. ISCC.exe packaging\installer.iss
+;      -> produces out\TexturePigSetup-<version>.exe
 ;
 ; Requires Inno Setup 6 (https://jrsoftware.org/isinfo.php).
 
@@ -21,7 +21,7 @@
 #define MyAppExeName "TexturePig.exe"
 #define MyAppURL "https://github.com/groovemeteor/texturepig"
 ; Paths are relative to this .iss (packaging/), so step up to the repo root.
-#define MyBuildDir "..\dist\TexturePig"
+#define MyBuildDir "..\out\TexturePig"
 
 [Setup]
 AppId={{B6C6E9B9-6E0B-4B7B-9C8C-3E7B7B5C9F41}
@@ -40,7 +40,7 @@ DisableProgramGroupPage=yes
 ; (shared across Windows accounts) is preferred instead.
 PrivilegesRequired=lowest
 UsePreviousAppDir=yes
-OutputDir=..\installer_output
+OutputDir=..\out
 OutputBaseFilename=TexturePigSetup-{#MyAppVersion}
 SetupIconFile=..\src\texture_pig\ui\icons\app.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}

@@ -10,7 +10,7 @@
 #   that extraction step dominates startup time. Onedir ships a small launcher
 #   exe next to a folder of DLLs/data -- nothing to unpack at runtime, so
 #   startup is limited only by actual DLL loading. Distribute it as the
-#   generated installer (see installer.iss) or a zip of dist/TexturePig/.
+#   generated installer (see installer.iss) or a zip of out/TexturePig/.
 
 import os
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
@@ -194,7 +194,8 @@ exe = EXE(
     icon=os.path.join(PKG_DIR, 'ui', 'icons', 'app.ico'),
 )
 
-# ---- COLLECT: assembles the exe + all binaries/data into dist/TexturePig/ ----
+# ---- COLLECT: assembles the exe + all binaries/data into <distpath>/TexturePig/ ----
+# build.bat passes --distpath out, so that's out/TexturePig/.
 coll = COLLECT(
     exe,
     a.binaries,
